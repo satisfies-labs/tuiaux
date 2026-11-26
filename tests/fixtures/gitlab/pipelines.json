@@ -1,0 +1,6 @@
+[
+  { "id": 9001, "iid": 87, "name": null, "status": "failed", "source": "push", "ref": "main", "sha": "c0ffee00",
+    "created_at": "2026-11-26T19:00:00Z", "updated_at": "2026-11-26T19:01:00Z", "web_url": "https://gitlab.com/team/web/-/pipelines/9001" },
+  { "id": 9000, "iid": 86, "name": "nightly", "status": "manual", "source": "schedule", "ref": "main", "sha": "deadbeef",
+    "created_at": "2026-11-25T02:00:00Z", "updated_at": "2026-11-25T02:00:00Z", "web_url": "https://gitlab.com/team/web/-/pipelines/9000" }
+]

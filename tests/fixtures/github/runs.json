@@ -1,0 +1,19 @@
+{
+  "total_count": 2,
+  "workflow_runs": [
+    {
+      "id": 1001, "name": "CI", "run_number": 412, "status": "in_progress", "conclusion": null,
+      "head_branch": "main", "head_sha": "a3f9c2e0000000000000000000000000000000000",
+      "display_title": "feat: pixel cloud hero", "event": "push", "actor": { "login": "Satisfies Labs" },
+      "created_at": "2026-11-26T20:00:00Z", "run_started_at": "2026-11-26T20:00:05Z", "updated_at": "2026-11-26T20:01:00Z",
+      "html_url": "https://github.com/satisfies-labs/tuiaux/actions/runs/1001"
+    },
+    {
+      "id": 1000, "name": "CI", "run_number": 411, "status": "completed", "conclusion": "timed_out",
+      "head_branch": "feat/works", "head_sha": "b000000000000000000000000000000000000000",
+      "display_title": "wip: works grid\n\nlong body", "event": "pull_request", "actor": { "login": "Satisfies Labs" },
+      "created_at": "2026-11-26T18:00:00Z", "run_started_at": "2026-11-26T18:00:02Z", "updated_at": "2026-11-26T18:00:50Z",
+      "html_url": "https://github.com/satisfies-labs/tuiaux/actions/runs/1000"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+# tuiaux configuration — copy to ~/.config/tuiaux/config.toml
+# Every key is optional. Run `tuiaux config` to print the path tuiaux reads.
+
+# Repos shown in the dashboard, on top of the git repo you launch tuiaux from.
+#   "github:owner/name"            → github.com (or [github].host)
+#   "gitlab:group/sub/project"     → gitlab.com (or [gitlab].host)
+#   "git.company.io:group/project" → explicit host
+repos = [
+  "github:satisfies-labs/tuiaux",
+  # { provider = "gitlab", path = "infra/k8s", host = "git.company.io", branch = "main" },
+]
+
+[theme]
+# "terminal" (default) inherits your terminal's colors.
+# Built-in: tuiaux-dark, tuiaux-light, tokyo-night, catppuccin-mocha, catppuccin-latte,
+#           gruvbox-dark, nord, dracula, rose-pine, kanagawa   (`tuiaux themes`)
+name = "terminal"
+
+# Override any token: "#rrggbb", "default" (terminal fg/bg) or "ansi:0".."ansi:15".
+# Tokens: bg, surface, selection, line, text, muted, accent, success, running, failure, idle
+[theme.colors]
+# success = "#9ece6a"
+
+[refresh]
+active = 5   # seconds between polls while a run is in progress
+idle = 30    # seconds between polls when everything is settled
+
+[notifications]
+enabled = true
+bell = true
+on = ["failure", "recovered"]   # also: "success"
+
+[github]
+host = "github.com"              # GitHub Enterprise: "github.company.com"
+# token_command = "pass show github/token"
+
+[gitlab]
+host = "gitlab.com"              # self-hosted: "git.company.io"
+# token_command = "op read op://dev/gitlab/token"

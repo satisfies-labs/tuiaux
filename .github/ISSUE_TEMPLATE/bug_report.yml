@@ -1,0 +1,34 @@
+name: Bug report
+description: Something looks or behaves wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Steps to reproduce, what you expected, what you saw. A screenshot helps a lot for UI bugs.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: tuiaux version
+      placeholder: output of `tuiaux --version`
+    validations:
+      required: true
+  - type: input
+    id: terminal
+    attributes:
+      label: OS, terminal and multiplexer
+      placeholder: macOS 15 · Ghostty 1.2 · tmux 3.5
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options: [GitHub, GitHub Enterprise, GitLab.com, GitLab self-hosted, Not provider related]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Run with `--debug` and paste the relevant part of `~/.local/state/tuiaux/tuiaux.log` (remove anything private).
+      render: text

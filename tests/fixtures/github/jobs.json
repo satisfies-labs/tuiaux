@@ -1,0 +1,13 @@
+{
+  "total_count": 1,
+  "jobs": [
+    {
+      "id": 5001, "name": "test", "status": "in_progress", "conclusion": null,
+      "started_at": "2026-11-26T20:00:10Z", "completed_at": null, "html_url": "https://github.com/x/y/actions/runs/1001/job/5001",
+      "steps": [
+        { "name": "Checkout", "status": "completed", "conclusion": "success", "number": 1, "started_at": "2026-11-26T20:00:10Z", "completed_at": "2026-11-26T20:00:12Z" },
+        { "name": "bun test", "status": "in_progress", "conclusion": null, "number": 2, "started_at": "2026-11-26T20:00:12Z", "completed_at": null }
+      ]
+    }
+  ]
+}

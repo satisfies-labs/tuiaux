@@ -1,0 +1,34 @@
+ ● tuiaux  › satisfies-labs/satisfies-labs-lab › CI #87 › test                                        ● failed in 0:48 · 12m ago
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+╭─ Jobs ─────────────────────────╮ ╭─ Log · bun test ───────────────────────────────────────────────────── ↓ follow · 214 lines ───╮
+│                                │ │                                                                                               │
+│  ● install                0:19 │ │  191  bun test v1.3.2                                                                         │
+│  ● lint                   0:11 │ │  192                                                                                          │
+│▌ ● test                   0:48 │ │  193  src/works/grid.test.ts:                                                                 │
+│  ○ build               skipped │ │  194  √ renders every project card [4.12ms]                                                   │
+│  ○ deploy              skipped │ │  195  √ keeps 3 columns above 1024px [1.80ms]                                                 │
+│                                │ │  196  × lazy-loads gifs outside the viewport [12.44ms]                                        │
+│                                │ │  197                                                                                          │
+│ STEPS · test                   │ │  198    expect(received).toBe(expected)                                                       │
+│                                │ │  199                                                                                          │
+│  ● Set up job             0:02 │ │  200    Expected: "lazy"                                                                      │
+│  ● Checkout               0:01 │ │  201    Received: "eager"                                                                     │
+│  ● Setup bun              0:04 │ │  202                                                                                          │
+│  ● bun install            0:09 │ │  203      41 |   const imgs = screen.getAllByRole("img")                                      │
+│  ● bun test               0:31 │ │  204    > 42 |   expect(imgs[5].loading).toBe("lazy")                                         │
+│  ○ Upload coverage           — │ │  205         |                           ^                                                    │
+│                                │ │  206      43 | })                                                                             │
+│                                │ │  207                                                                                          │
+│                                │ │  208        at src/works/grid.test.ts:42:27                                                   │
+│                                │ │  209                                                                                          │
+│                                │ │  210  18 pass                                                                                 │
+│                                │ │  211  1 fail                                                                                  │
+│                                │ │  212  43 expect() calls                                                                       │
+│                                │ │  213  Ran 19 tests across 6 files. [1.41s]                                                    │
+│                                │ │  214  error: script "test" exited with code 1                                                 │
+│ 1 failing step                 │ │                                                                                               │
+│                                │ │                                                                                               │
+╰────────────────────────────────╯ ╰───────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ esc back   j/k scroll   n next error   f follow   y copy   o open in browser   r rerun failed
+

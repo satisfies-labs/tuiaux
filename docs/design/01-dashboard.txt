@@ -1,0 +1,40 @@
+ ● tuiaux v0.1.0         1 Dashboard   2 Runs   3 Watch                     github ●  gitlab ●   ↓ 4s ago   theme: tuiaux-dark
+ ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ 12 pipelines  · ● 8 passing  ◌ 2 running  ● 1 failed  ○ 1 idle                                   filter: all  ·  sort: status ↓
+
+╭─ Repos ──────────────────────────────────╮ ╭─ Runs · satisfies-labs/portfolio-2026 ──────────────────────────────────────────────╮
+│                                          │ │                                                                                     │
+│ GITHUB                                   │ │    WORKFLOW     #     BRANCH       COMMIT                   EVENT      TIME   AGE   │
+│  ● satisfies-labs/satisfi… main      12m │ │▌◌  CI           412   main         feat: pixel cloud hero   push       1:42   now   │
+│▌ ◌ satisfies-labs/portfol… main     1:42 │ │ ●  Deploy       411   main         fix: og image size       push       2:10   38m   │
+│  ◌ satisfies-labs/shardfa… feat/ho… 0:37 │ │ ●  CI           411   main         fix: og image size       push       1:55   38m   │
+│  ● satisfies-labs/tuiaux   main       4m │ │ ●  CI           410   feat/works   wip: works grid          pull_req   0:48   2h    │
+│  ● satisfies-labs/crust-a… main       2h │ │ ●  CI           409   main         chore: bump astro        schedule   1:51   5h    │
+│  ● satisfies-labs/dotfiles main       1d │ │ ●  Lighthouse   88    main         chore: bump astro        schedule   3:02   5h    │
+│                                          │ │ ○  Release      12    main         —                        manual     —      3d    │
+│ GITLAB · gitlab.com                      │ │                                                                                     │
+│  ● innolab/vue-ui-kit      develop   25m │ │                                                                                     │
+│  ● innolab/sdm-backend     develop    1h │ │ 7 runs · page 1/4                                            avg 1:58 · ok 92%      │
+│  ● innolab/sdm-frontend    develop    3h │ │                                                                                     │
+│  ● innolab/infra           main       6h │ ╰─────────────────────────────────────────────────────────────────────────────────────╯
+│  ○ innolab/docs            main        — │ ╭─ Jobs · CI #412 · a3f9c2e ──────────────────────────────────────────────────────────╮
+│                                          │ │                                                                                     │
+│                                          │ │ ◌ running  ·  triggered by Satisfies Labs  ·  push on main  ·  started 1:42 ago     │
+│                                          │ │                                                                                     │
+│                                          │ │ ● install           ████████████████████████████████████████████████  done     0:21 │
+│                                          │ │                                                                                     │
+│                                          │ │ ● lint              ████████████████████████████████████████████████  done     0:18 │
+│                                          │ │                                                                                     │
+│                                          │ │ ● typecheck         ████████████████████████████████████████████████  done     0:26 │
+│                                          │ │                                                                                     │
+│                                          │ │ ◌ test              ███████████████████████████████░░░░░░░░░░░░░░░░░   64%     0:37 │
+│                                          │ │                                                                                     │
+│                                          │ │ ◌ build             ███████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   22%     0:12 │
+│                                          │ │                                                                                     │
+│                                          │ │ ○ deploy            ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░         queued │
+│ 14 repos · 2 providers                   │ │                                                                                     │
+│                                          │ │ steps: test › vitest run --coverage   142/221 passed                                │
+╰──────────────────────────────────────────╯ ╰─────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓ navigate   tab panel   ⏎ details   o open   r rerun   c cancel   w watch   / filter   t theme   ? help   q quit
+

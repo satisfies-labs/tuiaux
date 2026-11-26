@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", "group:allNonMajor"],
+  "schedule": ["before 6am on monday"],
+  "packageRules": [
+    {
+      "description": "OpenTUI is pre-1.0: review every bump by hand",
+      "matchPackageNames": ["@opentui/core", "@opentui/react"],
+      "groupName": "opentui",
+      "automerge": false
+    }
+  ]
+}
