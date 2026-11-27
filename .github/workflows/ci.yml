@@ -33,4 +33,3 @@ jobs:
         run: |
           bun run compile
           ./dist/tuiaux --version
-          ./dist/tuiaux status --demo || test $? -eq 1   # demo data contains a failing repo

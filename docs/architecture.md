@@ -111,10 +111,15 @@ interface Provider {
 ### Errors
 
 ```
-ProviderError = AuthMissing { kind, reason: "cli-not-installed" | "not-logged-in", hint }
-              | Unauthorized { kind, host } | RateLimited { kind, host, resetAt }
-              | NotFound { ref } | Network { host, cause } | Unexpected { host, status, cause }
+ProviderError = AuthMissing  { kind, host, reason: "cli-not-installed" | "not-logged-in", hint }   host-wide
+              | Unauthorized { kind, host, hint }                                                 host-wide
+              | RateLimited  { kind, host, resetAt }                                              host-wide
+              | NotFound     { repo, resource: "repo" | "run" | "job" }
+              | Network      { kind, host, cause }
+              | Unexpected   { kind, host, status?, cause }   // 5xx, unexpected status, undecodable payload
 ```
+
+All are `Schema.TaggedError`s: yieldable, structurally equal (a repeated error doesn't change state). `NotFound` on a run or job doesn't stop the repo, only `resource: "repo"` does.
 
 Errors are kept as values (`RepoHealth = Ok | Failing { error, since, nextRetryAt }`) and turned into text at render time by `describe(error)`.
 

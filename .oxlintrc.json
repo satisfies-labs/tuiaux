@@ -8,6 +8,7 @@
   "env": { "builtin": true, "es2024": true },
   "rules": {
     "no-unused-vars": "error",
+    "no-underscore-dangle": ["warn", { "allow": ["_tag"] }],
     "typescript/no-non-null-assertion": "warn",
     "typescript/no-explicit-any": "error",
     "react/rules-of-hooks": "error",

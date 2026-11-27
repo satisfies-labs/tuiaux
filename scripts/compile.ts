@@ -26,7 +26,7 @@ const suffix = target ? `-${target.replace(/^bun-/, "")}` : "";
 const outfile = `dist/tuiaux${suffix}`;
 
 const result = await Bun.build({
-  entrypoints: ["src/cli/index.ts"],
+  entrypoints: ["src/main.ts"],
   compile: target ? { target: target as Bun.Build.CompileTarget, outfile } : { outfile },
   minify: true,
   external: externalNative,
@@ -38,5 +38,3 @@ if (!result.success) {
   process.exit(1);
 }
 console.log(`built ${outfile}`);
-
-export {};
