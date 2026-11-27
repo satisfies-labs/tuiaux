@@ -1,5 +1,15 @@
 #!/usr/bin/env bun
-import { Cause, Console, Deferred, Effect, Exit, Layer, Option } from "effect"
+import {
+  Cause,
+  Console,
+  Deferred,
+  Effect,
+  Exit,
+  Filter,
+  Layer,
+  Option,
+  Stream,
+} from "effect"
 import { Atom } from "effect/reactivity"
 import { createElement } from "react"
 
@@ -10,7 +20,7 @@ import { createRoot } from "@opentui/react"
 
 import pkg from "../package.json"
 import { Root } from "./features/app/app"
-import { Monitor } from "./monitor"
+import { Monitor, notificationFor } from "./monitor"
 import {
   AppConfig,
   FileLogger,
@@ -22,7 +32,7 @@ import {
   RunCache,
 } from "./platform"
 import { Providers } from "./providers"
-import { resolveTheme, themeName } from "./ui"
+import { alert, resolveTheme, themeName } from "./ui"
 
 const HELP = `tuiaux ${pkg.version} — your CI pipelines, live in your terminal
 
@@ -75,6 +85,26 @@ const tui = Effect.gen(function* () {
   ).pipe(Effect.option)
 
   const theme = themeName(config.theme.name)
+
+  const { notifications } = config
+
+  if (notifications.enabled)
+    yield* monitor.settled.pipe(
+      Stream.filterMap(
+        Filter.fromPredicateOption(settled =>
+          notificationFor(settled, notifications.on),
+        ),
+      ),
+      Stream.runForEach(notification =>
+        alert(
+          renderer,
+          bytes => process.stdout.write(bytes),
+          notification,
+          notifications.bell,
+        ),
+      ),
+      Effect.forkScoped,
+    )
 
   createRoot(renderer).render(
     createElement(Root, {
