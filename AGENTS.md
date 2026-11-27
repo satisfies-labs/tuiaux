@@ -46,7 +46,7 @@ Hard rules:
 ## Conventions
 
 - Strict TS, `noUncheckedIndexedAccess`: handle `undefined` instead of using `!`.
-- Files: kebab or lower camel for modules, PascalCase for React components. Named exports only.
+- Files: kebab-case everywhere, React components included (`status-dot.tsx`). Components themselves stay PascalCase. Named exports only.
 - New provider behaviour ⇒ hand-written fixture in `tests/fixtures/<provider>/` + test. Monitor behaviour ⇒ test with `FakeProvider` + `TestClock`. New UI behaviour ⇒ `testRender` test over fake layers. Fakes live only in `tests/`.
 - Use the vocabulary of `GLOSSARY.md` in code and docs.
 - Conventional Commits (`feat(gitlab): …`, `fix(ui): …`). One logical change per commit.
