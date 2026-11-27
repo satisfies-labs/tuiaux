@@ -3,10 +3,10 @@ import { Duration, Option } from "effect"
 
 import {
   groupByProvider,
-  moveBy,
   runStats,
   tally,
 } from "../../src/features/dashboard/model"
+import { moveBy } from "../../src/ui"
 import { entry } from "../support/app"
 import { T0, repo, run } from "../support/domain"
 

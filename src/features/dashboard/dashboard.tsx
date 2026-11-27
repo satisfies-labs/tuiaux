@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 
-import { useAtom } from "@effect/atom-react"
+import { useAtom, useAtomSet } from "@effect/atom-react"
 import { useKeyboard, useTerminalDimensions } from "@opentui/react"
 
 import type { RepoRef } from "../../domain"
@@ -10,19 +10,16 @@ import {
   type Hint,
   KeyHints,
   StatusDot,
+  View,
+  moveBy,
   plural,
   useApp,
   useNow,
   useTheme,
+  viewAtom,
 } from "../../ui"
 import { JobsPanel } from "./jobs-panel"
-import {
-  forgetAtom,
-  groupByProvider,
-  moveBy,
-  selectionAtom,
-  tally,
-} from "./model"
+import { forgetAtom, groupByProvider, selectionAtom, tally } from "./model"
 import { RepoList } from "./repo-list"
 import { RunsTable } from "./runs-table"
 
@@ -33,6 +30,7 @@ const reposWidth = (width: number) =>
 export const DASHBOARD_HINTS: ReadonlyArray<Hint> = [
   ["↑↓", "move"],
   ["tab", "panel"],
+  ["⏎", "details"],
   ["o", "open"],
   ["d", "forget"],
   ["r", "refresh"],
@@ -105,6 +103,7 @@ export const Dashboard = ({
   const { width, height } = useTerminalDimensions()
   const [selection, setSelection] = useAtom(selectionAtom)
   const [forgetting, setForgetting] = useAtom(forgetAtom)
+  const setView = useAtomSet(viewAtom)
 
   const groups = groupByProvider(state.repos)
   const repos = groups.flatMap(group => group.repos)
@@ -174,6 +173,10 @@ export const Dashboard = ({
       case "h":
       case "left":
         return setSelection({ ...selection, panel: "repos" })
+      case "return":
+        if (run !== undefined) setView(View.RunDetail({ run: run.ref }))
+
+        return
       case "o":
         if (runsFocused && run !== undefined) app.open(run.url)
         else if (entry !== undefined) app.open(repoUrl(entry.repo))

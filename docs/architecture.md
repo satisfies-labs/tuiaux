@@ -31,9 +31,9 @@ src/
   features/
     app/             app.tsx (Root, App: view routing, global keys) · header · status-line · config-issues
     dashboard/       model.ts (selection atoms, grouping, stats) · dashboard.tsx (layout, keys, focus) · repo-list · runs-table · jobs-panel
-    run-detail/
+    run-detail/      model.ts (job selection, default job) · run-detail.tsx (breadcrumb, keys) · job-list · steps-panel
     watch/
-  ui/                app-context (AppHandle: state atom, commands, open, quit) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · format (durations, ages) · text (fit, plural) · window (scrolling) · hooks (useNow)
+  ui/                app-context (AppHandle: state atom, commands, open, quit) · navigation (View: Dashboard | RunDetail, viewAtom) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · format (durations, ages) · text (fit, plural) · window (scrolling) · hooks (useNow)
 tests/               mirrors src/; fixtures/<provider>/*.json (hand-written); fakes/ (fake Http, fake CLI spawner, …); support/ (Effect test helpers, builders)
 ```
 
@@ -111,6 +111,7 @@ Several providers live side by side, so they're built by the `Providers` service
 - Entities are `Schema.Class` (`Run`, `Job`, `Step`) → structural equality: an unchanged poll result doesn't change state or re-render.
 - Branded ids (`RunId`, `JobId`, `RepoKey`) and refs (`RepoRef`, `RunRef`, `JobRef`).
 - `Status`: `success · failure · running · queued · cancelled · skipped · idle`, folded by `toneOf` into 4 tones `success · running · failure · idle`.
+- `elapsed(item, now)`: start → now while active, else `duration(item)` (start → finish, None without an end, e.g. a skipped step).
 - Common model only; missing data is optional. `Job.stage?` carries GitLab stages.
 
 ### Errors

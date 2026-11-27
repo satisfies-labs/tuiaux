@@ -1,6 +1,6 @@
 import { Atom } from "effect/reactivity"
 
-import { RegistryProvider, useAtom } from "@effect/atom-react"
+import { RegistryProvider, useAtom, useAtomValue } from "@effect/atom-react"
 import { useKeyboard } from "@opentui/react"
 
 import {
@@ -8,11 +8,14 @@ import {
   type AppHandle,
   type Theme,
   ThemeContext,
+  View,
   useApp,
   useMonitorState,
   useTheme,
+  viewAtom,
 } from "../../ui"
 import { DASHBOARD_HINTS, Dashboard } from "../dashboard/dashboard"
+import { RUN_DETAIL_HINTS, RunDetail } from "../run-detail/run-detail"
 import { ConfigIssues } from "./config-issues"
 import { Header } from "./header"
 import { Help } from "./help"
@@ -25,10 +28,16 @@ export const App = () => {
   const app = useApp()
   const theme = useTheme()
   const state = useMonitorState()
+  const view = useAtomValue(viewAtom)
   const [opened, setOverlay] = useAtom(overlayAtom)
 
   const overlay =
     opened === "issues" && app.configIssues.length === 0 ? undefined : opened
+
+  const hints = View.$match(view, {
+    Dashboard: () => DASHBOARD_HINTS,
+    RunDetail: () => RUN_DETAIL_HINTS,
+  })
 
   useKeyboard(key => {
     if (key.name === "q" || (key.ctrl && key.name === "c")) return app.quit()
@@ -52,12 +61,23 @@ export const App = () => {
       backgroundColor={theme.bg}
     >
       <Header version={app.version} />
-      <Dashboard state={state} active={overlay === undefined} />
-      <StatusLine issues={state.hostIssues} hints={DASHBOARD_HINTS} />
+      {View.$match(view, {
+        Dashboard: () => (
+          <Dashboard state={state} active={overlay === undefined} />
+        ),
+        RunDetail: ({ run }) => (
+          <RunDetail
+            state={state}
+            target={run}
+            active={overlay === undefined}
+          />
+        ),
+      })}
+      <StatusLine issues={state.hostIssues} hints={hints} />
       {overlay === "issues" && (
         <ConfigIssues path={app.configPath} issues={app.configIssues} />
       )}
-      {overlay === "help" && <Help hints={DASHBOARD_HINTS} />}
+      {overlay === "help" && <Help hints={hints} />}
     </box>
   )
 }

@@ -19,3 +19,14 @@ export const visibleWindow = (
 
   return { start, end: start + size }
 }
+
+/** The key `delta` steps away from `current` in `keys`, clamped to the ends. */
+export const moveBy = <K>(
+  keys: ReadonlyArray<K>,
+  current: K | undefined,
+  delta: number,
+): K | undefined => {
+  const index = current === undefined ? 0 : Math.max(0, keys.indexOf(current))
+
+  return keys[Math.min(keys.length - 1, Math.max(0, index + delta))]
+}
