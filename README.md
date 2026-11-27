@@ -6,7 +6,7 @@
 </p>
 
 <p align="center"><b>Your CI pipelines, live in your terminal.</b><br>
-GitHub Actions and GitLab CI (self-hosted too) in one keyboard-driven TUI, built with <a href="https://github.com/anomalyco/opentui">OpenTUI</a>.</p>
+GitHub Actions and GitLab CI in one keyboard-driven TUI, built with <a href="https://github.com/anomalyco/opentui">OpenTUI</a> and <a href="https://effect.website">Effect</a>.</p>
 
 <p align="center">
   <a href="https://github.com/satisfies-labs/tuiaux/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/satisfies-labs/tuiaux/actions/workflows/ci.yml/badge.svg"></a>
@@ -18,10 +18,11 @@ GitHub Actions and GitLab CI (self-hosted too) in one keyboard-driven TUI, built
 
 ## Why
 
-- **Zero setup.** Run `tuiaux` in a repo: it finds the remote, reuses your `gh` / `glab` login, and shows the runs.
-- **All your repos at a glance.** GitHub and GitLab side by side, sorted so what's red or running comes first.
+- **Zero setup.** Run `tuiaux` in a repo: it finds the remote and reuses your `gh` / `glab` login. No token to paste anywhere.
+- **Type it anywhere.** Every repo that showed runs is remembered, so `tuiaux` from any directory shows them all, GitHub and GitLab side by side.
+- **Light on your API quota.** Only the repos that matter right now are polled (the current one, the one under the cursor, those with a running pipeline); the rest show their last known state.
+- **Tells you when it's done.** A bell and a terminal notification when a run fails, or turns green again.
 - **Your terminal, your colors.** Inherits your terminal theme by default; Tokyo Night, Catppuccin, Gruvbox, Nord… built in.
-- **Made for tmux.** `tuiaux watch` follows the current branch in a tiny pane, notifies you, and exits with the run's result.
 
 ## Install
 
@@ -34,56 +35,60 @@ curl -fsSL https://github.com/satisfies-labs/tuiaux/releases/latest/download/tui
 ./tuiaux --version
 ```
 
-Try it without any token: `tuiaux --demo`.
-
 ## Usage
 
 ```sh
-tuiaux                     # dashboard: current repo + repos from your config
-tuiaux watch               # follow the current branch's latest run (exit 0 / 1)
-tuiaux watch && git push   # …and chain it
-tuiaux status --json       # one-shot status for scripts
-tuiaux --repo gitlab:group/project --theme catppuccin-mocha
+tuiaux             # inside a repo: that repo first, then every remembered repo
+tuiaux --help
 ```
 
-| Key               | Action          |
-| ----------------- | --------------- |
-| `↑` `↓` / `j` `k` | move            |
-| `tab`             | next panel      |
-| `⏎`               | run details     |
-| `esc`             | back            |
-| `o`               | open in browser |
-| `r`               | refresh now     |
-| `t`               | cycle themes    |
-| `q`               | quit            |
+**Dashboard**: repos on the left, the selected repo's runs and the selected run's jobs on the right.
+
+| Key               | Action                                        |
+| ----------------- | --------------------------------------------- |
+| `↑` `↓` / `j` `k` | move                                          |
+| `tab` / `h` `l`   | switch between repos and runs                 |
+| `⏎`               | run details: jobs and their steps             |
+| `w`               | watch the run: a compact view for a tmux pane |
+| `o`               | open in the browser                           |
+| `d`               | forget a remembered repo                      |
+| `r`               | refresh now (also retries a stopped host)     |
+| `?`               | every key of the current view                 |
+| `esc`             | back                                          |
+| `q`               | quit                                          |
 
 ## Authentication
 
-tuiaux never stores tokens. For each host it tries, in order:
+tuiaux never stores tokens: it asks the official CLIs when it needs one and keeps it in memory.
 
-1. `token_command` from the config (e.g. `pass show github/token`)
-2. `TUIAUX_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN` — `TUIAUX_GITLAB_TOKEN` / `GITLAB_TOKEN`
-3. `gh auth token --hostname <host>` — `glab config get token --host <host>`
+| Host       | Token from                              | Scopes                                         |
+| ---------- | --------------------------------------- | ---------------------------------------------- |
+| github.com | `gh auth token` (`gh auth login` first) | `repo`, or fine-grained with _Actions: read_   |
+| gitlab.com | `glab` (`glab auth login` first)        | `read_api`                                     |
 
-Scopes: GitHub `repo` (or fine-grained _Actions: read_), GitLab `read_api`.
+GitHub Enterprise and self-hosted GitLab aren't supported yet.
 
 ## Configuration
 
-`~/.config/tuiaux/config.toml` — every key is optional. See [`config.example.toml`](config.example.toml) and [docs/configuration.md](docs/configuration.md).
+`~/.config/tuiaux/config.toml`: created empty on first run, every key optional. A wrong value never stops tuiaux: it uses the default and tells you what was wrong.
 
 ```toml
-repos = ["github:satisfies-labs/tuiaux", "git.company.io:infra/k8s"]
-
 [theme]
-name = "terminal"
+name = "terminal"          # or tokyo-night, catppuccin-mocha, gruvbox-dark, nord, …
 
-[theme.colors]
-success = "#9ece6a"
+[refresh]
+active = 5                 # seconds between polls while something runs
+idle = 30                  # … when nothing does
+
+[notifications]
+on = ["failure", "recovered"]
 ```
+
+All keys: [`config.example.toml`](config.example.toml) and [docs/configuration.md](docs/configuration.md).
 
 ## Contributing
 
-Contributions are welcome — new providers especially. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
+Contributions are welcome, new providers especially. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/architecture.md](docs/architecture.md).
 
 ## License
 

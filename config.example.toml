@@ -1,39 +1,26 @@
-# tuiaux configuration — copy to ~/.config/tuiaux/config.toml
-# Every key is optional. Run `tuiaux config` to print the path tuiaux reads.
-
-# Repos shown in the dashboard, on top of the git repo you launch tuiaux from.
-#   "github:owner/name"            → github.com (or [github].host)
-#   "gitlab:group/sub/project"     → gitlab.com (or [gitlab].host)
-#   "git.company.io:group/project" → explicit host
-repos = [
-  "github:satisfies-labs/tuiaux",
-  # { provider = "gitlab", path = "infra/k8s", host = "git.company.io", branch = "main" },
-]
+# tuiaux configuration: ~/.config/tuiaux/config.toml ($XDG_CONFIG_HOME/tuiaux/config.toml).
+# tuiaux creates the file empty on first run. Every key is optional; an invalid value falls back to
+# its default and is listed in a dialog at startup.
+#
+# Repos aren't configured here: tuiaux remembers every repo that showed runs. Tokens aren't either:
+# they come from `gh` and `glab`.
 
 [theme]
 # "terminal" (default) inherits your terminal's colors.
-# Built-in: tuiaux-dark, tuiaux-light, tokyo-night, catppuccin-mocha, catppuccin-latte,
-#           gruvbox-dark, nord, dracula, rose-pine, kanagawa   (`tuiaux themes`)
+# Built-in: terminal, tuiaux-dark, tuiaux-light, tokyo-night, catppuccin-mocha, catppuccin-latte,
+#           gruvbox-dark, nord, dracula, rose-pine, kanagawa
 name = "terminal"
 
-# Override any token: "#rrggbb", "default" (terminal fg/bg) or "ansi:0".."ansi:15".
+# Override any color: "#rrggbb", "default" (the terminal's own fg/bg) or "ansi:0".."ansi:15".
 # Tokens: bg, surface, selection, line, text, muted, accent, success, running, failure, idle
 [theme.colors]
 # success = "#9ece6a"
 
 [refresh]
-active = 5   # seconds between polls while a run is in progress
-idle = 30    # seconds between polls when everything is settled
+active = 5   # seconds between polls of a hot repo while a run is in progress (2–300)
+idle = 30    # seconds between polls of a hot repo when nothing runs (5–3600)
 
 [notifications]
 enabled = true
-bell = true
-on = ["failure", "recovered"]   # also: "success"
-
-[github]
-host = "github.com"              # GitHub Enterprise: "github.company.com"
-# token_command = "pass show github/token"
-
-[gitlab]
-host = "gitlab.com"              # self-hosted: "git.company.io"
-# token_command = "op read op://dev/gitlab/token"
+bell = true                     # ring the terminal bell
+on = ["failure", "recovered"]   # also "success" (which includes "recovered")

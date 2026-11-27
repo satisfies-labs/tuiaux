@@ -7,8 +7,7 @@ Thanks for helping! This guide gets you from clone to pull request.
 ```sh
 git clone https://github.com/satisfies-labs/tuiaux && cd tuiaux
 bun install          # Bun ≥ 1.3 (see .bun-version)
-bun run demo         # the TUI with fake data, no token needed
-bun run dev          # the real thing, in the current repo
+bun run dev          # the TUI, in the current repo (needs `gh` or `glab` logged in)
 ```
 
 ## Everyday commands
@@ -17,17 +16,16 @@ bun run dev          # the real thing, in the current repo
 | --------------------------------------------- | ------------------------------------------------ |
 | `bun run check`                               | lint + typecheck + tests — run before every push |
 | `bun test`                                    | tests (`tests/`)                                 |
-| `bun run snapshot [dashboard\|detail\|watch]` | render a view to plain text with demo data       |
 | `bun run format`                              | fix lint and formatting (oxlint + oxfmt)         |
 | `bun run compile`                             | standalone binary in `dist/`                     |
 
 ## Ground rules
 
-- Read [docs/architecture.md](docs/architecture.md): layers only depend downwards (`core` ← `providers` ← `services` ← `state` ← `ui` ← `cli`).
-- TypeScript strict, no `any`. oxfmt decides formatting.
-- Every provider mapping gets a test with a recorded API fixture in `tests/fixtures/`. No network in tests.
-- UI changes: paste the before/after `bun run snapshot` output in the PR.
-- Colors only come from theme tokens. Status colors are for statuses only.
+- Read [docs/architecture.md](docs/architecture.md), the ADRs in [docs/adr/](docs/adr) and [AGENTS.md](AGENTS.md): layers only depend downwards (`domain` ← `platform` ← `providers` ← `monitor` ← `ui` ← `features`).
+- TypeScript strict and Effect v4: services with layers, `Schema` for data, tagged errors as values. No `any`, no `as`. oxfmt decides formatting.
+- Every provider mapping gets a test with a hand-written fixture in `tests/fixtures/`. No network in tests.
+- UI changes get a `testRender` test over the fake app (`tests/support/app.tsx`); paste a `captureCharFrame()` before/after in the PR.
+- Colors only come from theme tokens. Status colors are for statuses only. File names are kebab-case.
 
 ## Commits & releases
 
