@@ -6,6 +6,8 @@ import { useKeyboard } from "@opentui/react"
 import {
   AppContext,
   type AppHandle,
+  TextContext,
+  type TextMeasure,
   type Theme,
   ThemeContext,
   View,
@@ -87,18 +89,22 @@ export const App = () => {
   )
 }
 
-/** Everything the app needs from outside React: its handle, its theme, an atom registry. */
+/** Everything the app needs from outside React: its handle, its theme, how the renderer measures text. */
 export const Root = ({
   app,
   theme,
+  text,
 }: {
   readonly app: AppHandle
   readonly theme: Theme
+  readonly text: TextMeasure
 }) => (
   <RegistryProvider>
     <AppContext value={app}>
       <ThemeContext value={theme}>
-        <App />
+        <TextContext value={text}>
+          <App />
+        </TextContext>
       </ThemeContext>
     </AppContext>
   </RegistryProvider>

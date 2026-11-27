@@ -1,8 +1,9 @@
-import { Dialog, type Hint, fit, useTheme } from "../../ui"
+import { Dialog, type Hint, useText, useTheme } from "../../ui"
 
 /** Every key of the current view, one per line. */
 export const Help = ({ hints }: { readonly hints: ReadonlyArray<Hint> }) => {
   const theme = useTheme()
+  const { fit } = useText()
 
   return (
     <Dialog title="keys">

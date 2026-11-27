@@ -7,9 +7,9 @@ import {
   ProgressBar,
   StatusDot,
   describeError,
-  fit,
   formatAge,
   formatDuration,
+  useText,
   useTheme,
 } from "../../ui"
 
@@ -38,6 +38,7 @@ const JobRow = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
+  const { fit } = useText()
   const name = job.stage === undefined ? job.name : `${job.stage} › ${job.name}`
 
   return (

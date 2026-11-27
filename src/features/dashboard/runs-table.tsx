@@ -5,10 +5,10 @@ import type { RepoEntry } from "../../monitor"
 import {
   Panel,
   StatusDot,
-  fit,
   formatAge,
   formatDuration,
   plural,
+  useText,
   useTheme,
   visibleWindow,
 } from "../../ui"
@@ -45,6 +45,7 @@ const RunRow = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
+  const { fit } = useText()
 
   return (
     <text wrapMode="none" bg={selected ? theme.selection : undefined}>
@@ -80,6 +81,7 @@ export const RunsTable = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
+  const { fit } = useText()
   const runs = entry?.runs ?? []
   const room = width - 4 - FIXED
   const event = room - EVENT - 1 >= MIN_COMMIT

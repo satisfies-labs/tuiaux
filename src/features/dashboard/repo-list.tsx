@@ -4,10 +4,10 @@ import {
   Panel,
   StatusDot,
   describeError,
-  fit,
   formatAge,
   formatDuration,
   plural,
+  useText,
   useTheme,
   visibleWindow,
 } from "../../ui"
@@ -34,6 +34,7 @@ const RepoRow = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
+  const { fit } = useText()
   const latest = entry.runs[0]
 
   const failing = RepoHealth.$is("Failing")(entry.health)

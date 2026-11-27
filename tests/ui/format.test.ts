@@ -2,14 +2,15 @@ import { describe, expect, test } from "bun:test"
 import { Duration, Option } from "effect"
 
 import {
-  fit,
   formatAge,
   formatDuration,
   plural,
+  textMeasure,
   visibleWindow,
 } from "../../src/ui"
 
 const NOW = new Date("2026-11-27T12:00:00Z")
+const { fit, width: cellWidth } = textMeasure("unicode")
 const ago = (seconds: number) => new Date(NOW.getTime() - seconds * 1000)
 
 describe("formatDuration", () => {
@@ -37,6 +38,24 @@ describe("fit", () => {
   test("pads short text and cuts long text with an ellipsis", () => {
     expect(fit("ci", 4)).toBe("ci  ")
     expect(fit("pipeline", 5)).toBe("pipe…")
+  })
+
+  test("counts terminal cells: emoji and CJK take two, accents none", () => {
+    expect(cellWidth("✨ feat")).toBe(7)
+    expect(cellWidth("修复")).toBe(4)
+    expect(cellWidth("cafe\u0301")).toBe(4)
+    expect(cellWidth("👩‍💻")).toBe(2)
+  })
+
+  test("keeps rows on the grid with wide characters", () => {
+    expect(fit("✨ feat", 9)).toBe("✨ feat  ")
+    expect(cellWidth(fit("✨ feat: add middleware", 10))).toBe(10)
+    expect(fit("✨ feat: add middleware", 10)).toBe("✨ feat: …")
+  })
+
+  test("a wide character that doesn't fit before the ellipsis leaves padding", () => {
+    expect(fit("a修复修复", 5)).toBe("a修… ")
+    expect(cellWidth(fit("a修复修复", 5))).toBe(5)
   })
 })
 

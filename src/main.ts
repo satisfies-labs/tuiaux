@@ -32,7 +32,7 @@ import {
   RunCache,
 } from "./platform"
 import { Providers } from "./providers"
-import { alert, resolveTheme, themeName } from "./ui"
+import { alert, resolveTheme, textMeasure, themeName } from "./ui"
 
 const HELP = `tuiaux ${pkg.version} — your CI pipelines, live in your terminal
 
@@ -108,6 +108,7 @@ const tui = Effect.gen(function* () {
 
   createRoot(renderer).render(
     createElement(Root, {
+      text: textMeasure(renderer.widthMethod),
       theme: resolveTheme(
         theme.name,
         config.theme.colors,

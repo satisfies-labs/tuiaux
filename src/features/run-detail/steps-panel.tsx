@@ -3,9 +3,9 @@ import {
   Panel,
   StatusDot,
   describeError,
-  fit,
   formatDuration,
   plural,
+  useText,
   useTheme,
 } from "../../ui"
 
@@ -23,6 +23,7 @@ const Steps = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
+  const { fit } = useText()
 
   if (job === undefined)
     return (
