@@ -27,7 +27,7 @@ src/
     rest.ts          shared REST client: auth, status → ProviderError, Schema decode; driven by a `RestSpec`
     github/          api.ts (payload schemas) · map.ts (pure) · index.ts (module: RestSpec + mapping)
     gitlab/          same shape
-  monitor/           Monitor service: polling policy, state, settled events
+  monitor/           state.ts (immutable MonitorState/RepoEntry: policy + transitions) · poll.ts (generic poll loop) · repos.ts (startup repo set) · monitor.ts (service)
   features/
     app/             root component, view routing, global keys, status line, dialogs
     dashboard/       atoms.ts · Dashboard.tsx · keys.ts
@@ -134,9 +134,9 @@ The only stateful engine. It keeps an up-to-date picture of CI for the repos on 
 ```ts
 interface Monitor {
   readonly state: SubscriptionRef<MonitorState>  // repos → runs, health, lastFetchedAt, stale; jobs of the focused run; host issues
-  readonly focusRepo: (repo: RepoRef | null) => Effect<void>   // cursor on a repo → hot
-  readonly focusRun: (run: RunRef | null) => Effect<void>      // polls jobs of that run
-  readonly refresh: Effect<void>                               // `r`: poll now, retry stopped hosts
+  readonly focusRepo: (repo: RepoRef | undefined) => Effect<void>   // cursor on a repo → hot
+  readonly focusRun: (run: RunRef | undefined) => Effect<void>      // polls jobs of that run
+  readonly refresh: Effect<void>                               // `r`: poll now (repos and open run's jobs), retry stopped hosts
   readonly forget: (repo: RepoRef) => Effect<void>             // `d`
   readonly settled: Stream<RunSettled>                         // running/queued → final
 }
@@ -153,7 +153,8 @@ interface Monitor {
 
 - **Hot** = current repo, repo under the cursor, or any repo with an active run (including one whose *cached* status is active). Polled every `refresh.active` s while something runs, `refresh.idle` s otherwise.
 - **Cold** = everything else: drawn from `RunCache`, marked stale (`updated 3d ago`), not polled.
-- One fiber per hot repo (`FiberMap` keyed by `RepoKey`); jobs polled only for the focused run; settled runs' jobs fetched once.
+- One fiber per hot repo (`FiberMap` keyed by `RepoKey`), reconciled by one fiber on `SubscriptionRef.changes` that reads the latest state (`MonitorState.hotRepos`). Repos and jobs share one `poll` loop: each fetch says "again in X" or "stop". Jobs polled only for the focused run (`FiberHandle`); settled runs' jobs fetched once.
+- `RunSettled` compares with this session's data only: runs that settled while tuiaux was closed don't announce. Side effects of a fetch (cache, history, `settled`) happen before the state update, uninterruptibly, since that update may make the repo cold.
 
 ### Reaction to errors
 
