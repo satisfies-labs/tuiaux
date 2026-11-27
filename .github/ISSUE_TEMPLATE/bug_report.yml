@@ -25,7 +25,14 @@ body:
     id: provider
     attributes:
       label: Provider
-      options: [GitHub, GitHub Enterprise, GitLab.com, GitLab self-hosted, Not provider related]
+      options:
+        [
+          GitHub,
+          GitHub Enterprise,
+          GitLab.com,
+          GitLab self-hosted,
+          Not provider related,
+        ]
   - type: textarea
     id: logs
     attributes:

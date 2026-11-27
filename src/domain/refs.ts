@@ -1,21 +1,32 @@
-import { Schema } from "effect";
+import { Schema } from "effect"
 
 /** CI services tuiaux can talk to. A provider is both the code host and the CI. */
-export const ProviderKind = Schema.Literals(["github", "gitlab"]);
-export type ProviderKind = typeof ProviderKind.Type;
+export const ProviderKind = Schema.Literals(["github", "gitlab"])
 
-export const RunId = Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("RunId"));
-export type RunId = typeof RunId.Type;
+export type ProviderKind = typeof ProviderKind.Type
 
-export const JobId = Schema.String.check(Schema.isMinLength(1)).pipe(Schema.brand("JobId"));
-export type JobId = typeof JobId.Type;
+export const RunId = Schema.String.check(Schema.isMinLength(1)).pipe(
+  Schema.brand("RunId"),
+)
+
+export type RunId = typeof RunId.Type
+
+export const JobId = Schema.String.check(Schema.isMinLength(1)).pipe(
+  Schema.brand("JobId"),
+)
+
+export type JobId = typeof JobId.Type
 
 /** Stable string identity of a repo: `github:github.com/owner/name`. Used as a map key and in file names. */
-export const RepoKey = Schema.String.pipe(Schema.brand("RepoKey"));
-export type RepoKey = typeof RepoKey.Type;
+export const RepoKey = Schema.String.pipe(Schema.brand("RepoKey"))
+
+export type RepoKey = typeof RepoKey.Type
 
 /** Where a repo lives. */
-export class RepoRef extends Schema.Class<RepoRef>("RepoRef")({
+export class RepoRef extends Schema.Class<
+  RepoRef,
+  { readonly brand: unique symbol }
+>("RepoRef")({
   kind: ProviderKind,
   /** API host, e.g. `github.com`, `gitlab.com`. */
   host: Schema.String.check(Schema.isMinLength(1)),
@@ -23,18 +34,24 @@ export class RepoRef extends Schema.Class<RepoRef>("RepoRef")({
   path: Schema.String.check(Schema.isPattern(/^[^/\s]+(\/[^/\s]+)+$/)),
 }) {
   get key(): RepoKey {
-    return RepoKey.make(`${this.kind}:${this.host}/${this.path}`);
+    return RepoKey.make(`${this.kind}:${this.host}/${this.path}`)
   }
 }
 
 /** Where a run lives. */
-export class RunRef extends Schema.Class<RunRef>("RunRef")({
+export class RunRef extends Schema.Class<
+  RunRef,
+  { readonly brand: unique symbol }
+>("RunRef")({
   repo: RepoRef,
   id: RunId,
 }) {}
 
 /** Where a job lives. */
-export class JobRef extends Schema.Class<JobRef>("JobRef")({
+export class JobRef extends Schema.Class<
+  JobRef,
+  { readonly brand: unique symbol }
+>("JobRef")({
   run: RunRef,
   id: JobId,
 }) {}

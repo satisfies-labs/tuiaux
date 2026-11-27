@@ -6,10 +6,11 @@ tuiaux is a TUI that shows GitHub Actions and GitLab CI pipelines live in the te
 
 ## Commands
 
-- `bun run check` — lint + typecheck + tests. **Must pass before you consider a task done.**
+- `bun run check` — lint (oxlint, then the type-aware Effect rules of `@effect/tsgo` with `--deny-warnings`, then `oxfmt --check`) + typecheck + tests. **Must pass before you consider a task done.**
 - `bun test` — tests (no network, ever)
 - `bun run dev` — run the TUI
-- `bun run format` — oxlint --fix + oxfmt
+- `bun run format` — oxfmt (no semicolons, 80 columns, `x => …`). `bunx oxlint --fix src tests scripts` fixes import member order.
+- `bun install` runs `prepare`, which patches oxlint with the Effect rules; `lint` re-applies it. Bumping `oxlint`, `oxlint-tsgolint` or `@effect/tsgo` must keep them in the versions `@effect/tsgo` supports (see its README).
 - `bun run compile` — standalone binary in `dist/`
 
 ## Architecture (read docs/architecture.md)
@@ -34,6 +35,12 @@ Hard rules:
 
 - Services are Effect services with a `Layer`; dependencies are yielded once when the layer is built. Methods return `Effect`/`Stream` and are named with `Effect.fn("Service.method")`.
 - Domain types and API payloads use `Schema` (no zod). Entities are `Schema.Class`; ids are branded.
+- Every `Schema.Class` / `TaggedClass` / `TaggedError` is branded: `Schema.Class<Run, { readonly brand: unique symbol }>("Run")({…})`. Otherwise a plain object with the same fields typechecks as a `Run` but has no structural equality.
+- No type assertions (`as`): use `satisfies`, annotations, type guards, or a Schema decoder. Decode with the typed API (`decodeEffect`, `decodeOption`) when the input type is known; `decodeUnknown*` only for real `unknown` input.
+- No `unknown`/`any` in an Effect's error or requirements channel: name the error type, or make the helper generic.
+- In domain and persisted schemas, never `Schema.optional`: use a required `Schema.UndefinedOr(X)`. `{ a: undefined }` and `{}` aren't structurally equal, so a value must have exactly one shape (otherwise identical polls look different and the cache round trip changes values). Constructors then list every field.
+- Run processes with `runCommand` (`src/platform/command.ts`), not `ChildProcessSpawner.string`, which ignores the exit code.
+- Services that only read/write app-owned files (`RepoHistory`, `RunCache`, `Git`) never fail: they log and degrade. Their error channel is `never`.
 - Effect v4 is new: check `node_modules/effect` sources and `.d.ts` files instead of relying on memory or v3 examples.
 
 ## Conventions

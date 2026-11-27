@@ -66,12 +66,13 @@ Defects (bugs) are caught at the top: restore the terminal, print one line with 
 
 | Service | Responsibility |
 |---|---|
-| `AppConfig` | Reads `~/.config/tuiaux/config.toml` once at startup (Schema + TOML). Missing file → create an empty one. Invalid keys or bad syntax → defaults for those keys + a list of `ConfigIssue`s shown in a dialog at startup. Never written by the app otherwise. |
-| `Logger` | Effect Logger to a file. Tokens are `Redacted` and can't be logged in clear. |
+| `Paths` | XDG locations (also on macOS), from `HOME` / `XDG_*` via Effect `Config`. Relative or empty XDG values are ignored. |
+| `AppConfig` | Reads `~/.config/tuiaux/config.toml` once at startup (`effect/encoding/Toml` + Schema, each key decoded on its own). Missing file → create an empty one. Invalid keys or bad syntax → defaults for those keys + a list of `ConfigIssue`s shown in a dialog at startup. Never written by the app otherwise. |
+| `FileLogger` | Replaces the console logger with a logfmt file logger (append, rotated to `.log.1` past 1 MB at startup). If the file can't be opened, logs are dropped, never printed. Level via `TUIAUX_LOG=Debug\|Info\|Warn\|Error`. Tokens are `Redacted` and can't be logged in clear. |
 | `Http` | Effect `HttpClient` (fetch): base URL, auth header, user agent, 15 s timeout, in-memory ETag cache (`If-None-Match`, 304 → cached body). **No retries**: retry policy belongs to `Monitor`. |
-| `Git` | Finds the repo for the cwd and its remotes/current branch. Asks every registered provider's `matchRemote`. |
-| `RepoHistory` | Remembered repos in `~/.local/state/tuiaux/repos.json`: `RepoRef`, local path, last seen, last branch. Atomic writes (tmp + rename). `forget(repo)`. |
-| `RunCache` | Last known runs per repo in `~/.cache/tuiaux/runs/<key>.json`, used to draw cold repos instantly. Safe to delete. |
+| `Git` | `detect(cwd)` → root, current branch (None when detached), fetch remotes (`origin`, `upstream`, then others). Uses the git CLI with `GIT_OPTIONAL_LOCKS=0`. `parseGitUrl` (pure, drops credentials) is what providers' `matchRemote` build on; matching a remote to a provider happens in `providers`. |
+| `RepoHistory` | Remembered repos in `~/.local/state/tuiaux/repos.json` (versioned): `RepoRef`, local path, last seen, last branch. Each change re-reads the file (two processes don't erase each other), writes are atomic (tmp + rename), a corrupt file is moved aside. `list` / `remember` / `forget`; never fails. |
+| `RunCache` | Last known runs per repo in `~/.cache/tuiaux/runs/<encoded key>.json` (versioned), used to draw cold repos instantly. Missing/outdated/corrupt → None. Never fails. |
 | `Notifier` | Bell / OSC 9 / OS notification on `RunSettled`, filtered by config. |
 | `Opener` | Opens URLs in the browser. |
 
