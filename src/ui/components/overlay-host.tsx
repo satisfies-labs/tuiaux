@@ -1,10 +1,10 @@
 import { useAtom } from "@effect/atom-react"
 import { useKeyboard } from "@opentui/react"
 
-import { type Command, keyLabel } from "../commands"
+import type { Command } from "../commands"
 import { Overlay, overlayAtom } from "../overlay"
-import { useText } from "../text"
 import { useTheme } from "../theme"
+import { CommandPalette } from "./command-palette"
 import { Dialog } from "./dialog"
 
 const ConfirmDialog = ({
@@ -106,35 +106,6 @@ const PromptDialog = ({
   )
 }
 
-// shortcut: a plain key list until the command palette lands.
-const KeysDialog = ({
-  commands,
-  close,
-}: {
-  readonly commands: ReadonlyArray<Command>
-  readonly close: () => void
-}) => {
-  const theme = useTheme()
-  const { fit } = useText()
-
-  useKeyboard(key => {
-    if (key.name === "escape" || key.name === "return") close()
-  })
-
-  return (
-    <Dialog title="keys" width={48} footer={[["escape", "close"]]}>
-      {commands.map(command => (
-        <text key={command.id} wrapMode="none">
-          <strong fg={theme.accent}>
-            {fit(keyLabel(command.keys[0] ?? ""), 6)}
-          </strong>
-          <span fg={theme.text}>{command.title}</span>
-        </text>
-      ))}
-    </Dialog>
-  )
-}
-
 /** Draws the open overlay, if any. `commands` feeds the palette. */
 export const OverlayHost = ({
   commands,
@@ -147,7 +118,7 @@ export const OverlayHost = ({
   if (overlay === undefined) return null
 
   return Overlay.$match(overlay, {
-    Palette: () => <KeysDialog commands={commands} close={close} />,
+    Palette: () => <CommandPalette commands={commands} close={close} />,
     Confirm: confirm => <ConfirmDialog overlay={confirm} close={close} />,
     Notice: notice => <NoticeDialog overlay={notice} close={close} />,
     Prompt: prompt => <PromptDialog overlay={prompt} close={close} />,

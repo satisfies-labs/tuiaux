@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 
-import { RegistryProvider, useAtomSet, useAtomValue } from "@effect/atom-react"
+import { RegistryProvider, useAtom, useAtomSet } from "@effect/atom-react"
 import { useKeyboard } from "@opentui/react"
 
 import {
@@ -19,19 +19,24 @@ import {
   overlayAtom,
   useApp,
   useMonitorState,
+  useNow,
   useTheme,
   viewAtom,
 } from "../../ui"
 import { Dashboard } from "../dashboard/dashboard"
+import { selectionAtom } from "../dashboard/model"
 import { RunDetail } from "../run-detail/run-detail"
 import { Watch } from "../watch/watch"
 import { Header } from "./header"
+import { jumpCommands } from "./jump"
 
 export const App = () => {
   const app = useApp()
   const theme = useTheme()
   const state = useMonitorState()
-  const view = useAtomValue(viewAtom)
+  const now = useNow()
+  const [view, setView] = useAtom(viewAtom)
+  const setSelection = useAtomSet(selectionAtom)
   const setOverlay = useAtomSet(overlayAtom)
   const setFlash = useAtomSet(flashAtom)
 
@@ -67,13 +72,25 @@ export const App = () => {
       },
     },
     {
-      id: "app.help",
-      title: "Keys",
+      id: "app.palette",
+      title: "Commands",
       group: "Actions",
-      keys: ["?"],
-      hint: "help",
+      keys: ["ctrl+k", ":", "?"],
       palette: false,
       run: () => setOverlay(Overlay.Palette()),
+    },
+    {
+      id: "app.about",
+      title: "About tuiaux",
+      group: "Actions",
+      keys: [],
+      run: () =>
+        setOverlay(
+          Overlay.Notice({
+            title: "tuiaux",
+            lines: [`tuiaux v${app.version}`, `config: ${app.configPath}`],
+          }),
+        ),
     },
     {
       id: "app.quit",
@@ -83,6 +100,15 @@ export const App = () => {
       hint: "quit",
       run: app.quit,
     },
+    ...jumpCommands(
+      state,
+      now,
+      repo => {
+        setSelection({ panel: "repos", repo, run: undefined })
+        setView(View.Dashboard())
+      },
+      run => setView(View.RunDetail({ run })),
+    ),
   ]
 
   return (

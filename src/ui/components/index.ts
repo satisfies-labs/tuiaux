@@ -1,3 +1,5 @@
+export * from "./command-palette"
+
 export * from "./dialog"
 
 export * from "./key-hints"

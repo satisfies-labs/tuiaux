@@ -10,6 +10,8 @@ export * from "./describe"
 
 export * from "./format"
 
+export * from "./fuzzy"
+
 export * from "./hooks"
 
 export * from "./navigation"

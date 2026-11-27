@@ -1,4 +1,4 @@
-import { expect, spyOn, test } from "bun:test"
+import { expect, test } from "bun:test"
 
 import { RateLimited } from "../../src/domain"
 import { UnknownKey } from "../../src/platform"
@@ -46,16 +46,6 @@ test("r refreshes and q quits", async () => {
   expect(app.quits()).toBe(1)
 })
 
-test("? opens the help, esc closes it", async () => {
-  const app = await renderApp(twoRepos)
-
-  await app.press("?")
-  expect(app.frame()).toContain("─ keys ─")
-
-  await app.interact(() => app.setup.mockInput.pressEscape())
-  expect(app.frame()).not.toContain("─ keys ─")
-})
-
 test("config issues open first; keys wait until esc closes them", async () => {
   const app = await renderApp(twoRepos, {
     configIssues: [new UnknownKey({ key: "repos" })],
@@ -78,15 +68,4 @@ test("at 80 columns the hints fit and the commands key stays visible", async () 
 
   for (const line of frame.split("\n"))
     expect(line.length).toBeLessThanOrEqual(80)
-})
-
-test("the key list draws each command once", async () => {
-  const errors = spyOn(console, "error").mockImplementation(() => {})
-  const app = await renderApp(twoRepos)
-
-  await app.press("?")
-
-  expect(app.frame().match(/Quit/g)?.length).toBe(1)
-  expect(errors).not.toHaveBeenCalled()
-  errors.mockRestore()
 })
