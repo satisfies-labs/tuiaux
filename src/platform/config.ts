@@ -300,7 +300,7 @@ export const decodeConfig = (source: string): DecodedConfig => {
     }
   }
 
-  const checked = Schema.decodeUnknownResult(StrictDocument)(parsed.success, {
+  const checked = Schema.decodeResult(StrictDocument)(parsed.success, {
     errors: "all",
     onExcessProperty: "error",
     reportInput: true,
@@ -310,9 +310,9 @@ export const decodeConfig = (source: string): DecodedConfig => {
     ? configIssues(checked.failure.issue, [])
     : []
 
-  const valid = Schema.decodeUnknownOption(LenientDocument)(
-    parsed.success,
-  ).pipe(Option.getOrElse((): typeof LenientDocument.Type => ({})))
+  const valid = Schema.decodeOption(LenientDocument)(parsed.success).pipe(
+    Option.getOrElse((): typeof LenientDocument.Type => ({})),
+  )
 
   const d = DEFAULT_CONFIG
 

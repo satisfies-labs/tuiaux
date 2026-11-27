@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option } from "effect"
+import { Context, Effect, Layer, Match, Option } from "effect"
 import { ChildProcessSpawner } from "effect/process"
 
 import { runCommand } from "./command"
@@ -22,7 +22,11 @@ export interface LocalRepo {
 
 /** `origin` first, then `upstream`, then every other remote. */
 const rank = (remote: Remote): number =>
-  remote.name === "origin" ? 0 : remote.name === "upstream" ? 1 : 2
+  Match.value(remote.name).pipe(
+    Match.when("origin", () => 0),
+    Match.when("upstream", () => 1),
+    Match.orElse(() => 2),
+  )
 
 /** Parses `git remote -v` output, keeping fetch URLs. */
 export const parseRemotes = (output: string): ReadonlyArray<Remote> => {
