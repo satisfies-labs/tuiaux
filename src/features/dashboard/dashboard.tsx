@@ -3,7 +3,7 @@ import { useEffect } from "react"
 import { useAtom, useAtomSet } from "@effect/atom-react"
 import { useTerminalDimensions } from "@opentui/react"
 
-import type { RepoRef } from "../../domain"
+import type { RepoRef, Tone } from "../../domain"
 import type { MonitorState, RepoEntry } from "../../monitor"
 import {
   type Command,
@@ -19,7 +19,7 @@ import {
   useNow,
   useTheme,
 } from "../../ui"
-import { JobsPanel } from "./jobs-panel"
+import { JobsPanel, jobsPanelHeight } from "./jobs-panel"
 import { groupByProvider, selectionAtom, tally } from "./model"
 import { RepoList } from "./repo-list"
 import { RunsTable } from "./runs-table"
@@ -27,6 +27,13 @@ import { RunsTable } from "./runs-table"
 /** The repos panel takes about a third of the width, within readable bounds. */
 const reposWidth = (width: number) =>
   Math.min(44, Math.max(32, Math.floor(width * 0.36)))
+
+const TONES: ReadonlyArray<readonly [Tone, string]> = [
+  ["failure", "failed"],
+  ["running", "running"],
+  ["success", "passing"],
+  ["idle", "idle"],
+]
 
 const repoUrl = (repo: RepoRef) => `https://${repo.host}/${repo.path}`
 
@@ -43,15 +50,18 @@ const Summary = ({
   return (
     <box height={1} flexShrink={0} paddingX={1}>
       <text wrapMode="none" fg={theme.muted}>
-        {`${plural(repos.length, "repo")}  ·  `}
-        <StatusDot status="success" />
-        {` ${count.success} passing   `}
-        <StatusDot status="running" />
-        {` ${count.running} running   `}
-        <StatusDot status="failure" />
-        {` ${count.failure} failed   `}
-        <StatusDot status="idle" />
-        {` ${count.idle} idle`}
+        {plural(repos.length, "repo")}
+        {TONES.flatMap(([tone, label]) =>
+          count[tone] === 0
+            ? []
+            : [
+                <span key={tone}>
+                  {"  ·  "}
+                  <StatusDot status={tone} />
+                  {` ${count[tone]} ${label}`}
+                </span>,
+              ],
+        )}
         {inGitRepo ? "" : "  ·  not in a Git repo"}
       </text>
     </box>
@@ -229,7 +239,10 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
 
   // Header, summary and status lines take one row each.
   const content = height - 3
-  const runsHeight = Math.ceil(content / 2)
+
+  const runsHeight =
+    content - jobsPanelHeight(state.focusedRun?.jobs.length ?? 0, content)
+
   const repoWidth = reposWidth(width)
   const rightWidth = width - repoWidth
 

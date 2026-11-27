@@ -1,15 +1,32 @@
 import { type Job, elapsed } from "../../domain"
 import {
+  type Column,
   Panel,
   StatusDot,
+  Table,
   formatDuration,
+  panelInner,
   plural,
-  useText,
-  useTheme,
-  visibleWindow,
 } from "../../ui"
 
-const TIME = 8
+const columns = (now: Date): ReadonlyArray<Column<Job>> => [
+  {
+    id: "name",
+    width: 0,
+    flex: true,
+    priority: 10,
+    value: job =>
+      job.stage === undefined ? job.name : `${job.stage} › ${job.name}`,
+  },
+  {
+    id: "time",
+    width: 8,
+    align: "right",
+    priority: 8,
+    value: job => formatDuration(elapsed(job, now)),
+    tone: () => "muted",
+  },
+]
 
 /** The run's jobs; GitLab jobs are prefixed with their stage. */
 export const JobList = ({
@@ -24,43 +41,23 @@ export const JobList = ({
   readonly width: number
   readonly height: number
   readonly now: Date
-}) => {
-  const theme = useTheme()
-  const { fit } = useText()
-  const cursor = jobs.findIndex(job => job.ref.id === selected?.ref.id)
-  const { start, end } = visibleWindow(jobs.length, cursor, height - 2)
-  // Marker, dot, the space after it and the time column.
-  const name = width - 4 - 3 - TIME
-
-  return (
-    <Panel
-      title="Jobs"
-      footer={jobs.length === 0 ? undefined : plural(jobs.length, "job")}
+}) => (
+  <Panel
+    title="Jobs"
+    footer={jobs.length === 0 ? undefined : plural(jobs.length, "job")}
+    focused
+    width={width}
+    height={height}
+  >
+    <Table
+      columns={columns(now)}
+      rows={jobs}
+      rowKey={job => job.ref.id}
+      lead={job => <StatusDot status={job.status} now={now} />}
+      selected={selected?.ref.id}
       focused
-      width={width}
-      height={height}
-    >
-      {jobs.slice(start, end).map(job => {
-        const isSelected = job.ref.id === selected?.ref.id
-
-        const label =
-          job.stage === undefined ? job.name : `${job.stage} › ${job.name}`
-
-        return (
-          <text
-            key={job.ref.id}
-            wrapMode="none"
-            bg={isSelected ? theme.selection : undefined}
-          >
-            <span fg={theme.accent}>{isSelected ? "▌" : " "}</span>
-            <StatusDot status={job.status} />
-            <span fg={theme.text}>{` ${fit(label, name)}`}</span>
-            <span fg={theme.muted}>
-              {formatDuration(elapsed(job, now)).padStart(TIME)}
-            </span>
-          </text>
-        )
-      })}
-    </Panel>
-  )
-}
+      width={panelInner(width)}
+      height={height - 2}
+    />
+  </Panel>
+)

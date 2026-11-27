@@ -2,6 +2,8 @@ export * from "./alert"
 
 export * from "./app-context"
 
+export * from "./columns"
+
 export * from "./commands"
 
 export * from "./components"

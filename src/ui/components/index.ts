@@ -14,4 +14,6 @@ export * from "./screen"
 
 export * from "./status-dot"
 
+export * from "./table"
+
 export * from "./tabs"

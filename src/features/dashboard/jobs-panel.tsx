@@ -3,19 +3,16 @@ import { Equal, Match } from "effect"
 import { type Job, type Run, completion, elapsed } from "../../domain"
 import type { FocusedRun } from "../../monitor"
 import {
+  type Column,
   Panel,
   ProgressBar,
   StatusDot,
+  Table,
   describeError,
-  formatAge,
   formatDuration,
-  useText,
+  panelInner,
   useTheme,
 } from "../../ui"
-
-const NAME = 20
-const LABEL = 8
-const TIME = 6
 
 const labelOf = (job: Job): string =>
   Match.value(job.status).pipe(
@@ -28,31 +25,45 @@ const labelOf = (job: Job): string =>
     Match.orElse(status => status),
   )
 
-const JobRow = ({
-  job,
-  bar,
-  now,
-}: {
-  readonly job: Job
-  readonly bar: number
-  readonly now: Date
-}) => {
-  const theme = useTheme()
-  const { fit } = useText()
-  const name = job.stage === undefined ? job.name : `${job.stage} › ${job.name}`
+const columns = (now: Date): ReadonlyArray<Column<Job>> => [
+  {
+    id: "name",
+    width: 20,
+    priority: 10,
+    value: job =>
+      job.stage === undefined ? job.name : `${job.stage} › ${job.name}`,
+  },
+  {
+    id: "bar",
+    width: 0,
+    flex: true,
+    min: 4,
+    priority: 5,
+    value: () => "",
+    cell: (job, width) => (
+      <ProgressBar value={completion(job)} width={width} status={job.status} />
+    ),
+  },
+  {
+    id: "label",
+    width: 8,
+    priority: 6,
+    value: labelOf,
+    tone: () => "muted",
+  },
+  {
+    id: "time",
+    width: 6,
+    align: "right",
+    priority: 8,
+    value: job => formatDuration(elapsed(job, now)),
+    tone: () => "muted",
+  },
+]
 
-  return (
-    <text wrapMode="none">
-      <StatusDot status={job.status} />
-      <span fg={theme.text}>{` ${fit(name, NAME)} `}</span>
-      <ProgressBar value={completion(job)} width={bar} status={job.status} />
-      <span fg={theme.muted}>{` ${fit(labelOf(job), LABEL)}`}</span>
-      <span fg={theme.muted}>
-        {formatDuration(elapsed(job, now)).padStart(TIME)}
-      </span>
-    </text>
-  )
-}
+/** Rows the jobs panel wants: its borders, one row per job, room for an error line. */
+export const jobsPanelHeight = (jobs: number, content: number): number =>
+  Math.min(Math.max(jobs + 3, 5), Math.floor(content / 2))
 
 /** The jobs of the selected run, polled by the Monitor while it's the focused run. */
 export const JobsPanel = ({
@@ -76,34 +87,33 @@ export const JobsPanel = ({
     Equal.equals(focused.run, run.ref)
 
   const jobs = ours ? focused.jobs : []
-  // Dot, spaces around the name, label and time columns.
-  const bar = Math.max(4, width - 4 - NAME - LABEL - TIME - 4)
 
   const title =
     run === undefined
       ? "Jobs"
-      : `Jobs · ${run.workflow} #${run.number} · ${run.commitSha.slice(0, 7)}`
+      : [
+          `Jobs · ${run.workflow} #${run.number}`,
+          run.commitSha.slice(0, 7),
+          `${run.event} on ${run.branch}`,
+          ...(run.actor === undefined ? [] : [`by ${run.actor}`]),
+        ].join(" · ")
 
   return (
-    <Panel title={title} height={height}>
-      {run !== undefined && (
-        <text wrapMode="none" fg={theme.muted}>
-          {[
-            run.status,
-            `${run.event} on ${run.branch}`,
-            ...(run.actor === undefined ? [] : [`by ${run.actor}`]),
-            `created ${formatAge(run.createdAt, now)} ago`,
-          ].join("  ·  ")}
-        </text>
-      )}
+    <Panel title={title} width={width} height={height}>
       {ours && focused.error !== undefined && (
         <text wrapMode="none" fg={theme.failure}>
           {describeError(focused.error)}
         </text>
       )}
-      {jobs.slice(0, Math.max(0, height - 3)).map(job => (
-        <JobRow key={job.ref.id} job={job} bar={bar} now={now} />
-      ))}
+      <Table
+        columns={columns(now)}
+        rows={jobs}
+        rowKey={job => job.ref.id}
+        lead={job => <StatusDot status={job.status} now={now} />}
+        focused={false}
+        width={panelInner(width)}
+        height={Math.max(0, height - 2)}
+      />
       {run !== undefined && jobs.length === 0 && (
         <text fg={theme.muted}>{ours ? "No jobs yet." : "Loading jobs…"}</text>
       )}

@@ -46,12 +46,14 @@ const Breadcrumb = ({
       flexDirection="row"
       justifyContent="space-between"
     >
-      <text wrapMode="none" fg={theme.muted}>
-        {`${run.ref.repo.path} › `}
-        <span fg={theme.text}>{`${run.workflow} #${run.number}`}</span>
-        {jobName === undefined ? "" : ` › ${jobName}`}
-      </text>
-      <text wrapMode="none" fg={theme.muted}>
+      <box flexGrow={1} flexShrink={1} overflow="hidden" marginRight={1}>
+        <text wrapMode="none" fg={theme.muted}>
+          {`${run.ref.repo.path} › `}
+          <span fg={theme.text}>{`${run.workflow} #${run.number}`}</span>
+          {jobName === undefined ? "" : ` › ${jobName}`}
+        </text>
+      </box>
+      <text wrapMode="none" flexShrink={0} fg={theme.muted}>
         <StatusDot status={run.status} />
         {` ${run.status} ${verb} ${formatDuration(elapsed(run, now))} · ${formatAge(run.createdAt, now)} ago`}
       </text>
