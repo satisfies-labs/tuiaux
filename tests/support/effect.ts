@@ -73,8 +73,10 @@ const makeTester = <R, EL>(provide: Provide<R, EL>): Tester<R> => {
     (name, body, timeout) =>
       kind(name, () => run(provide(Effect.suspend(body))), timeout)
 
+  // `test.only` throws as soon as it's read when CI is set: read it only when a test asks for it.
   return Object.assign(register(test), {
-    only: register(test.only),
+    only: ((name, body, timeout) =>
+      register(test.only)(name, body, timeout)) satisfies Register<R>,
     skip: register(test.skip),
     todo: (name: string) => test.todo(name),
   })
