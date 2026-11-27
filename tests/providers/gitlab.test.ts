@@ -40,9 +40,11 @@ const withGitLab = <A, E>(
   glab: FakeBinary = LOGGED_IN,
 ) => withProvider(GitLab, "glab", route, use, glab)
 
+const GRAPHQL = "https://gitlab.com/api/graphql"
+
 describe("listRuns", () => {
   it.effect(
-    "maps pipelines, estimating times from created/updated",
+    "maps pipelines, with real times, author and commit title",
     () =>
       withGitLab(always({ status: 200, body: pipelinesPayload }), gitlab =>
         Effect.gen(function* () {
@@ -54,10 +56,11 @@ describe("listRuns", () => {
             status: "failure",
             branch: "main",
             commitSha: "c0ffee00",
-            commitMessage: undefined,
+            commitMessage: "fix: og image size",
             event: "push",
-            startedAt: new Date("2026-11-26T19:00:00Z"),
-            finishedAt: new Date("2026-11-26T19:01:00Z"),
+            actor: "estxbxn",
+            startedAt: new Date("2026-11-26T19:00:04Z"),
+            finishedAt: new Date("2026-11-26T19:00:58Z"),
             url: "https://gitlab.com/team/web/-/pipelines/9001",
           })
           expect(failed?.ref.id).toBe(RunId.make("9001"))
@@ -65,36 +68,60 @@ describe("listRuns", () => {
             workflow: "nightly",
             status: "idle",
             event: "schedule",
+            actor: undefined,
+            commitMessage: undefined,
             startedAt: undefined,
-            finishedAt: undefined,
           })
         }),
       ).effect,
   )
 
-  it.effect("addresses the project by its encoded full path", () => {
-    const setup = withGitLab(
-      always({ status: 200, body: pipelinesPayload }),
-      gitlab =>
-        Effect.gen(function* () {
-          yield* gitlab.listRuns(repo, { branch: "develop", limit: 5 })
-          yield* gitlab.listRuns(repo, OPTS)
+  it.effect(
+    "one GraphQL request per poll, with the project, limit and branch",
+    () => {
+      const setup = withGitLab(
+        always({ status: 200, body: pipelinesPayload }),
+        gitlab =>
+          Effect.gen(function* () {
+            yield* gitlab.listRuns(repo, { branch: "develop", limit: 5 })
+            yield* gitlab.listRuns(repo, OPTS)
+          }),
+      )
+
+      return setup.effect.pipe(
+        Effect.map(() => {
+          const [first, second, ...rest] = setup.http.sent
+
+          expect(rest).toHaveLength(0)
+          expect(first).toMatchObject({ method: "POST", url: GRAPHQL })
+          expect(first?.body).toMatchObject({
+            variables: { path: "team/sub/web", first: 5, ref: "develop" },
+          })
+          expect(second?.body).toMatchObject({
+            variables: { path: "team/sub/web", first: 20, ref: null },
+          })
+          expect(first?.header("authorization")).toBe("Bearer glpat-secret")
         }),
-    )
+      )
+    },
+  )
 
-    return setup.effect.pipe(
-      Effect.map(() => {
-        const [first, second] = setup.http.sent
+  it.effect("a project GraphQL can't see → NotFound for the repo", () =>
+    withGitLab(
+      always({ status: 200, body: { data: { project: null } } }),
+      gitlab => Effect.flip(gitlab.listRuns(repo, OPTS)),
+    ).effect.pipe(Effect.map(failsWith(NotFound, { resource: "repo" }))),
+  )
 
-        expect(first?.url).toBe(
-          "https://gitlab.com/api/v4/projects/team%2Fsub%2Fweb/pipelines",
-        )
-        expect(first?.params).toEqual({ per_page: "5", ref: "develop" })
-        expect(second?.params).toEqual({ per_page: "20" })
-        expect(first?.header("authorization")).toBe("Bearer glpat-secret")
+  it.effect("GraphQL errors in a 200 → Unexpected", () =>
+    withGitLab(
+      always({
+        status: 200,
+        body: { errors: [{ message: "boom" }], data: null },
       }),
-    )
-  })
+      gitlab => Effect.flip(gitlab.listRuns(repo, OPTS)),
+    ).effect.pipe(Effect.map(failsWith(Unexpected, { status: undefined }))),
+  )
 })
 
 describe("listJobs", () => {

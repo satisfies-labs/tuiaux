@@ -22,8 +22,9 @@ export class CachedRuns extends Schema.Class<
   fetchedAt: Schema.Date,
 }) {}
 
-/** Bump when the shape of `Run` changes: old cache files are then ignored and replaced. */
-const VERSION = 1
+/** Bump when cached runs can't be trusted anymore (shape or meaning): old files are ignored and replaced. */
+// 2: run durations no longer come from `updated_at`.
+const VERSION = 2
 
 const CacheFile = Schema.toCodecJson(
   Schema.Struct({ version: Schema.Literal(VERSION), entry: CachedRuns }),

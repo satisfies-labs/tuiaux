@@ -18,6 +18,10 @@ interface Cached {
   readonly body: string
 }
 
+/** Only GETs: a POST (GraphQL) carries its query in the body, so its URL alone says nothing. */
+const isGet = (request: HttpClientRequest.HttpClientRequest) =>
+  request.method === "GET"
+
 const keyOf = (request: HttpClientRequest.HttpClientRequest) =>
   `${request.url}?${UrlParams.toString(request.urlParams)}`
 
@@ -51,7 +55,7 @@ export const withEtagCache = (
 
   return client.pipe(
     HttpClient.mapRequest(request => {
-      const cached = cache.get(keyOf(request))
+      const cached = isGet(request) ? cache.get(keyOf(request)) : undefined
 
       return cached === undefined
         ? request
@@ -59,6 +63,8 @@ export const withEtagCache = (
     }),
     HttpClient.transformResponse(
       Effect.flatMap(response => {
+        if (!isGet(response.request)) return Effect.succeed(response)
+
         const key = keyOf(response.request)
         const cached = cache.get(key)
         const etag = Headers.get(response.headers, "etag")

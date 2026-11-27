@@ -1,4 +1,15 @@
-import { Clock, Duration, Effect, Option, Result, type Schema } from "effect"
+import {
+  Cache,
+  Clock,
+  Data,
+  Duration,
+  Effect,
+  Exit,
+  Option,
+  Predicate,
+  Result,
+  type Schema,
+} from "effect"
 import {
   Headers,
   HttpClient,
@@ -11,9 +22,11 @@ import {
 import {
   Network,
   NotFound,
+  type ProviderError,
   type ProviderKind,
   RateLimited,
   type RepoRef,
+  type RunRef,
   Unauthorized,
   Unexpected,
 } from "../domain"
@@ -132,17 +145,14 @@ export const restClient = Effect.fn("Rest.client")(function* (spec: RestSpec) {
       ),
     )
 
-  const get = Effect.fn("Rest.get")(function* <
+  /** Sends one authenticated request and turns the answer into a decoded value or a `ProviderError`. */
+  const send = Effect.fn("Rest.send")(function* <
     S extends Schema.Constraint & { readonly DecodingServices: never },
-  >(schema: S, path: string, params: UrlParams.Input, target: Target) {
+  >(schema: S, request: HttpClientRequest.HttpClientRequest, target: Target) {
     const token = yield* credentials.token
 
     const response = yield* http
-      .execute(
-        HttpClientRequest.get(path, { urlParams: params }).pipe(
-          HttpClientRequest.bearerToken(token),
-        ),
-      )
+      .execute(HttpClientRequest.bearerToken(request, token))
       .pipe(Effect.mapError(cause => new Network({ ...origin, cause })))
 
     return yield* HttpClientResponse.matchStatus(response, {
@@ -165,5 +175,68 @@ export const restClient = Effect.fn("Rest.client")(function* (spec: RestSpec) {
     })
   })
 
-  return { get }
+  return {
+    get: <S extends Schema.Constraint & { readonly DecodingServices: never }>(
+      schema: S,
+      path: string,
+      params: UrlParams.Input,
+      target: Target,
+    ) =>
+      send(schema, HttpClientRequest.get(path, { urlParams: params }), target),
+
+    /** A JSON POST, e.g. a GraphQL query: one request for what REST would need many for. */
+    post: <S extends Schema.Constraint & { readonly DecodingServices: never }>(
+      schema: S,
+      path: string,
+      body: Schema.Json,
+      target: Target,
+    ) =>
+      send(
+        schema,
+        HttpClientRequest.post(path).pipe(
+          HttpClientRequest.bodyJsonUnsafe(body),
+        ),
+        target,
+      ),
+  }
+})
+
+/** Credentials or quota problems: they affect the whole host, never only one lookup. */
+const isHostWide = (error: ProviderError): boolean =>
+  Predicate.isTagged(error, "AuthMissing") ||
+  Predicate.isTagged(error, "Unauthorized") ||
+  Predicate.isTagged(error, "RateLimited")
+
+/** A run as last modified. Details cached per revision are fetched again after a re-run. */
+export class RunRevision extends Data.Class<{
+  readonly run: RunRef
+  /** The run's `updated_at`: useless as an end time, but it changes whenever the run does. */
+  readonly updatedAt: number
+}> {}
+
+/**
+ * Looks up what can't change for a key (a settled run's real times for one revision, a commit's
+ * title) once, and keeps it. A failure isn't kept, so the next poll asks again; meanwhile a local
+ * failure (not found, network) reads as None, and a host-wide one (rate limit, credentials) fails.
+ */
+export const cachedLookup = Effect.fn("Rest.cachedLookup")(function* <K, A>(
+  lookup: (key: K) => Effect.Effect<A, ProviderError>,
+) {
+  const cache = yield* Cache.makeWith(lookup, {
+    capacity: 1024,
+    timeToLive: Exit.match({
+      onFailure: () => Duration.zero,
+      onSuccess: () => Duration.infinity,
+    }),
+  })
+
+  // Host-wide errors still fail, so the Monitor pauses the host instead of polling on.
+  return (key: K) =>
+    Cache.get(cache, key).pipe(
+      Effect.map(Option.some),
+      Effect.catchIf(
+        error => !isHostWide(error),
+        () => Effect.succeedNone,
+      ),
+    )
 })

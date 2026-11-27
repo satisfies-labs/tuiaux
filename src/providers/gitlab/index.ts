@@ -1,16 +1,17 @@
 import { Effect, Option } from "effect"
 
-import { RepoRef } from "../../domain"
+import { NotFound, RepoRef } from "../../domain"
 import { parseGitUrl } from "../../platform"
 import type { Provider, ProviderModule } from "../provider"
 import { restClient } from "../rest"
-import { GlJobsPage, GlPipelinesPage } from "./api"
+import { GlJobsPage, GlPipelinesResult, PIPELINES_QUERY } from "./api"
 import { mapJob, mapPipeline } from "./map"
 
 const HOST = "gitlab.com"
 
-/** GitLab addresses a project by its full path, URL-encoded as one segment. */
-const project = (repo: RepoRef) => `/projects/${encodeURIComponent(repo.path)}`
+/** GitLab's REST API addresses a project by its full path, URL-encoded as one segment. */
+const project = (repo: RepoRef) =>
+  `/v4/projects/${encodeURIComponent(repo.path)}`
 
 /** GitLab CI on gitlab.com. Tokens come from `glab`. */
 export const GitLab: ProviderModule = {
@@ -29,7 +30,7 @@ export const GitLab: ProviderModule = {
     const rest = yield* restClient({
       kind: "gitlab",
       host: HOST,
-      baseUrl: `https://${HOST}/api/v4`,
+      baseUrl: `https://${HOST}/api`,
       headers: { accept: "application/json" },
       cli: {
         command: "glab",
@@ -48,17 +49,31 @@ export const GitLab: ProviderModule = {
       kind: "gitlab",
       capabilities: { rerun: false, cancel: false, logs: "none" },
 
+      // One GraphQL request per poll, whatever the number of pipelines.
       listRuns: (repo, opts) =>
         rest
-          .get(
-            GlPipelinesPage,
-            `${project(repo)}/pipelines`,
-            { per_page: opts.limit, ref: opts.branch },
+          .post(
+            GlPipelinesResult,
+            "/graphql",
+            {
+              query: PIPELINES_QUERY,
+              variables: {
+                path: repo.path,
+                first: opts.limit,
+                ref: opts.branch ?? null,
+              },
+            },
             { repo, resource: "repo" },
           )
           .pipe(
-            Effect.map(page =>
-              page.map(pipeline => mapPipeline(repo, pipeline)),
+            Effect.flatMap(({ data }) =>
+              data.project === null
+                ? Effect.fail(new NotFound({ repo, resource: "repo" }))
+                : Effect.succeed(
+                    data.project.pipelines.nodes.map(pipeline =>
+                      mapPipeline(repo, pipeline),
+                    ),
+                  ),
             ),
           ),
 
