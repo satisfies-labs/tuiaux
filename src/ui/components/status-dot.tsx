@@ -11,7 +11,20 @@ const GLYPH: Record<Status, string> = {
   idle: "○",
 }
 
-/** The brand's dot: the only colored mark, always in its status tone. */
-export const StatusDot = ({ status }: { readonly status: Status }) => (
-  <span fg={useTheme()[toneOf(status)]}>{GLYPH[status]}</span>
+const SPINNER = ["◐", "◓", "◑", "◒"]
+
+/** The brand's dot: the only colored mark, always in its status tone. Given `now`, a running dot spins. */
+export const StatusDot = ({
+  status,
+  now,
+}: {
+  readonly status: Status
+  readonly now?: Date | undefined
+}) => (
+  <span fg={useTheme()[toneOf(status)]}>
+    {status === "running" && now !== undefined
+      ? (SPINNER[Math.floor(now.getTime() / 1000) % SPINNER.length] ??
+        GLYPH.running)
+      : GLYPH[status]}
+  </span>
 )

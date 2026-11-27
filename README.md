@@ -52,9 +52,11 @@ tuiaux --help
 | `w`               | watch the run: a compact view for a tmux pane |
 | `o`               | open in the browser                           |
 | `d`               | forget a remembered repo                      |
+| `/` / `f`         | filter repos by name / show failing repos     |
 | `r`               | refresh now (also retries a stopped host)     |
-| `?`               | every key of the current view                 |
-| `esc`             | back                                          |
+| `ctrl+k` `:` `?`  | command palette: every action, repo and run   |
+| `1` `2` `3`       | dashboard, last run, its watch view           |
+| `esc`             | back (or clear the filter)                    |
 | `q`               | quit                                          |
 
 ## Authentication

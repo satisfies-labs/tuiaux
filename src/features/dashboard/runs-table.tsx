@@ -3,31 +3,77 @@ import { Option } from "effect"
 import { type ProviderKind, type Run, elapsed } from "../../domain"
 import type { RepoEntry } from "../../monitor"
 import {
+  type Column,
   Panel,
   StatusDot,
+  Table,
   formatAge,
   formatDuration,
+  panelInner,
   plural,
-  useText,
   useTheme,
-  visibleWindow,
 } from "../../ui"
 import { runStats } from "./model"
 
-const WORKFLOW = 10
-const NUMBER = 5
-const BRANCH = 10
-const EVENT = 8
-
-/** Fits `h:mm:ss`. */
-const TIME = 8
-const AGE = 4
-
-/** Marker, dot, and one space after each column but the last. */
-const FIXED = 2 + WORKFLOW + NUMBER + BRANCH + TIME + AGE + 6
-
-/** Narrower than this, the commit column keeps the room and EVENT goes. */
-const MIN_COMMIT = 16
+const columns = (now: Date): ReadonlyArray<Column<Run>> => [
+  {
+    id: "workflow",
+    header: "WORKFLOW",
+    width: 10,
+    priority: 9,
+    value: run => run.workflow,
+  },
+  {
+    id: "number",
+    header: "#",
+    width: 5,
+    priority: 6,
+    value: run => String(run.number),
+    tone: () => "muted",
+  },
+  {
+    id: "commit",
+    header: "COMMIT",
+    width: 0,
+    flex: true,
+    min: 12,
+    priority: 10,
+    value: run => run.commitMessage ?? "—",
+  },
+  {
+    id: "branch",
+    header: "BRANCH",
+    width: 10,
+    priority: 4,
+    value: run => run.branch,
+  },
+  {
+    id: "event",
+    header: "EVENT",
+    width: 8,
+    priority: 2,
+    value: run => run.event,
+    tone: () => "muted",
+  },
+  {
+    id: "time",
+    header: "TIME",
+    width: 8,
+    align: "right",
+    priority: 8,
+    value: run => formatDuration(elapsed(run, now)),
+    tone: () => "muted",
+  },
+  {
+    id: "age",
+    header: "AGE",
+    width: 4,
+    align: "right",
+    priority: 7,
+    value: run => formatAge(run.createdAt, now),
+    tone: () => "muted",
+  },
+]
 
 /** Why a repo can show no runs: usually there's no CI configuration on the provider's side. */
 const noRuns: Record<ProviderKind, string> = {
@@ -35,41 +81,6 @@ const noRuns: Record<ProviderKind, string> = {
     "No workflow runs yet. GitHub Actions runs the workflows in .github/workflows/.",
   gitlab:
     "No pipelines yet. GitLab CI runs the pipeline defined in .gitlab-ci.yml.",
-}
-
-const RunRow = ({
-  run,
-  selected,
-  focused,
-  commit,
-  event,
-  now,
-}: {
-  readonly run: Run
-  readonly selected: boolean
-  readonly focused: boolean
-  readonly commit: number
-  readonly event: boolean
-  readonly now: Date
-}) => {
-  const theme = useTheme()
-  const { fit } = useText()
-
-  return (
-    <text wrapMode="none" bg={selected ? theme.selection : undefined}>
-      <span fg={theme.accent}>{selected && focused ? "▌" : " "}</span>
-      <StatusDot status={run.status} />
-      <span fg={theme.text}>{` ${fit(run.workflow, WORKFLOW)} `}</span>
-      <span fg={theme.muted}>{fit(String(run.number), NUMBER)} </span>
-      <span fg={theme.text}>{fit(run.branch, BRANCH)} </span>
-      <span fg={theme.text}>{fit(run.commitMessage ?? "—", commit)} </span>
-      {event && <span fg={theme.muted}>{fit(run.event, EVENT)} </span>}
-      <span fg={theme.muted}>
-        {fit(formatDuration(elapsed(run, now)), TIME)}{" "}
-      </span>
-      <span fg={theme.muted}>{fit(formatAge(run.createdAt, now), AGE)}</span>
-    </text>
-  )
 }
 
 /** The runs of the selected repo, newest first, with their average duration and success rate. */
@@ -89,15 +100,8 @@ export const RunsTable = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
-  const { fit } = useText()
   const runs = entry?.runs ?? []
-  const room = width - 4 - FIXED
-  const event = room - EVENT - 1 >= MIN_COMMIT
-  const commit = Math.max(8, event ? room - EVENT - 1 : room)
   const { average, okRatio } = runStats(runs)
-  const cursor = runs.findIndex(run => run.ref.id === selected?.ref.id)
-  // Borders and the column header.
-  const { start, end } = visibleWindow(runs.length, cursor, height - 3)
 
   const footer = [
     plural(runs.length, "run"),
@@ -112,29 +116,25 @@ export const RunsTable = ({
       title={entry === undefined ? "Runs" : `Runs · ${entry.repo.path}`}
       footer={runs.length === 0 ? undefined : footer}
       focused={focused}
+      width={width}
       height={height}
     >
-      <text wrapMode="none" fg={theme.muted}>
-        {`   ${fit("WORKFLOW", WORKFLOW)} ${fit("#", NUMBER)} ${fit("BRANCH", BRANCH)} ${fit("COMMIT", commit)} ${event ? `${fit("EVENT", EVENT)} ` : ""}${fit("TIME", TIME)} AGE`}
-      </text>
       {runs.length === 0 ? (
         <text fg={theme.muted}>
           {entry === undefined ? "No runs yet." : noRuns[entry.repo.kind]}
         </text>
       ) : (
-        runs
-          .slice(start, end)
-          .map(run => (
-            <RunRow
-              key={run.ref.id}
-              run={run}
-              selected={run.ref.id === selected?.ref.id}
-              focused={focused}
-              commit={commit}
-              event={event}
-              now={now}
-            />
-          ))
+        <Table
+          header
+          columns={columns(now)}
+          rows={runs}
+          rowKey={run => run.ref.id}
+          lead={run => <StatusDot status={run.status} now={now} />}
+          selected={selected?.ref.id}
+          focused={focused}
+          width={panelInner(width)}
+          height={height - 2}
+        />
       )}
     </Panel>
   )

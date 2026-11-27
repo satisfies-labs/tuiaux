@@ -29,11 +29,11 @@ src/
     gitlab/          same shape
   monitor/           state.ts (immutable MonitorState/RepoEntry: policy + transitions) · poll.ts (generic poll loop) · repos.ts (startup repo set) · notification.ts (settled run → notification) · monitor.ts (service)
   features/
-    app/             app.tsx (Root, App: view routing, global keys) · header · status-line · config-issues
+    app/             app.tsx (Root, App: view routing, global commands) · header (tabs, hosts) · jump (palette entries for repos and runs)
     dashboard/       model.ts (selection atoms, grouping, stats) · dashboard.tsx (layout, keys, focus) · repo-list · runs-table · jobs-panel
     run-detail/      model.ts (job selection, default job) · run-detail.tsx (breadcrumb, keys) · job-list · steps-panel
     watch/           watch.tsx (one run: status, overall progress, a dot per job; `w` from dashboard or detail)
-  ui/                app-context (AppHandle: state atom, commands, open, quit) · navigation (View: Dashboard | RunDetail | Watch, viewAtom) · alert (bell, OSC 9, OpenTUI notification) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · format (durations, ages) · text (fit, plural) · window (scrolling) · hooks (useNow)
+  ui/                app-context (AppHandle: state atom, commands, open, quit) · navigation (View: Dashboard | RunDetail | Watch, navigationAtom with history) · commands (Command, matchKey) · overlay (palette, confirm, notice, prompt; flash) · columns (layoutColumns) · fuzzy · alert (bell, OSC 9, OpenTUI notification) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · format (durations, ages) · text (fit, plural) · window (scrolling) · hooks (useNow)
 tests/               mirrors src/; fixtures/<provider>/*.json (hand-written); fakes/ (fake Http, fake CLI spawner, …); support/ (Effect test helpers, builders)
 ```
 
@@ -174,6 +174,9 @@ Per-repo errors show inline on the row; host-wide errors show in the bottom stat
 
 - `@effect/atom-react`: atoms adapt `Monitor.state` for components and call `Monitor` commands. UI-only state (view, cursor, panel focus, dialogs) lives in plain atoms.
 - Colors only via theme tokens; status colors only for statuses (`toneOf`). Strict character grid (`truncate`/`padEnd`, `wrapMode="none"` on rows).
+- Commands: every action is a `Command` (title, keys, hint, run) declared once. Each view renders `<Screen commands>`, which merges the app's global commands, runs the only key dispatcher, draws the status line from the hints and hosts the open overlay. The palette (`Ctrl-K`, `:`, `?`) lists the same commands plus jumps to repos and recent runs.
+- One overlay at a time (`overlayAtom`); while open it owns the keys, `esc` closes it. `Ctrl-C` always quits.
+- Lists use `Table`: columns sized by `layoutColumns`, the lowest priorities dropped first when the terminal is narrow.
 - Theme: 11 tokens (`bg surface selection line text muted accent success running failure idle`), built-in themes, default `terminal` theme resolved from the terminal palette (OSC 4/10/11) with `tuiaux-dark` fallback.
 
 ### Keys
@@ -184,11 +187,14 @@ Per-repo errors show inline on the row; host-wide errors show in the bottom stat
 | `Tab` / `←→` / `hl` | switch panel |
 | `Enter` | open run detail |
 | `w` | watch selected run |
-| `Esc` / `Backspace` | back |
+| `Esc` / `Backspace` | back (dashboard: clear the filter) |
 | `o` | open in browser |
 | `r` | refresh now (also retries stopped hosts) |
 | `d` | forget repo (confirmation) |
-| `?` | help |
+| `/` | filter repos by name |
+| `f` | show failing repos only |
+| `1` `2` `3` / `[` `]` | tabs: dashboard, last run, its watch view |
+| `Ctrl-K` / `:` / `?` | command palette |
 | `q` / `Ctrl-C` | quit |
 
 Keys for capabilities a provider lacks are hidden.

@@ -1,29 +1,42 @@
-import { type Job, type ProviderError, elapsed } from "../../domain"
+import { type Job, type ProviderError, type Step, elapsed } from "../../domain"
 import {
+  type Column,
   Panel,
   StatusDot,
+  Table,
   describeError,
   formatDuration,
+  panelInner,
   plural,
-  useText,
   useTheme,
 } from "../../ui"
 
-const TIME = 8
+const columns = (now: Date): ReadonlyArray<Column<Step>> => [
+  { id: "name", width: 0, flex: true, priority: 10, value: step => step.name },
+  {
+    id: "time",
+    width: 8,
+    align: "right",
+    priority: 8,
+    value: step => formatDuration(elapsed(step, now)),
+    tone: () => "muted",
+  },
+]
 
 const Steps = ({
   job,
   loading,
-  name,
+  width,
+  height,
   now,
 }: {
   readonly job: Job | undefined
   readonly loading: boolean
-  readonly name: number
+  readonly width: number
+  readonly height: number
   readonly now: Date
 }) => {
   const theme = useTheme()
-  const { fit } = useText()
 
   if (job === undefined)
     return (
@@ -41,15 +54,17 @@ const Steps = ({
       </text>
     )
 
-  return job.steps.map((step, index) => (
-    <text key={`${index}-${step.name}`} wrapMode="none">
-      <StatusDot status={step.status} />
-      <span fg={theme.text}>{` ${fit(step.name, name)}`}</span>
-      <span fg={theme.muted}>
-        {formatDuration(elapsed(step, now)).padStart(TIME)}
-      </span>
-    </text>
-  ))
+  return (
+    <Table
+      columns={columns(now)}
+      rows={job.steps}
+      rowKey={step => `${job.steps.indexOf(step)}-${step.name}`}
+      lead={step => <StatusDot status={step.status} now={now} />}
+      focused={false}
+      width={width}
+      height={height}
+    />
+  )
 }
 
 /** The steps of the selected job. Logs come later; until then `o` opens the job page. */
@@ -69,8 +84,6 @@ export const StepsPanel = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
-  // Borders, padding, dot, the space after it and the time column.
-  const name = width - 4 - 2 - TIME
 
   const failing =
     job?.steps.filter(step => step.status === "failure").length ?? 0
@@ -87,7 +100,14 @@ export const StepsPanel = ({
           {describeError(error)}
         </text>
       )}
-      <Steps job={job} loading={loading} name={name} now={now} />
+      <Steps
+        job={job}
+        loading={loading}
+        width={panelInner(width)}
+        // Borders, the error line and the hint below.
+        height={Math.max(0, height - 5)}
+        now={now}
+      />
       {job?.url !== undefined && (
         <box marginTop={1}>
           <text fg={theme.muted}>

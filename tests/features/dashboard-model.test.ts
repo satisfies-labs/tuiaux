@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { Duration, Option } from "effect"
 
 import {
+  applyFilter,
   groupByProvider,
   runStats,
   tally,
@@ -73,5 +74,29 @@ describe("runStats", () => {
       average: Option.none(),
       okRatio: Option.none(),
     })
+  })
+})
+
+describe("applyFilter", () => {
+  const failing = entry({
+    repo: repo("acme/web"),
+    runs: [run({ status: "failure" })],
+  })
+
+  const repos = [entry({ repo: repo("acme/api") }), failing]
+
+  test("keeps the repos whose path matches the query", () => {
+    expect(
+      applyFilter(repos, { query: "web", failingOnly: false }).map(
+        e => e.repo.path,
+      ),
+    ).toEqual(["acme/web"])
+  })
+
+  test("failing only keeps red repos; an empty filter keeps all", () => {
+    expect(applyFilter(repos, { query: "", failingOnly: true })).toEqual([
+      failing,
+    ])
+    expect(applyFilter(repos, { query: "", failingOnly: false })).toEqual(repos)
   })
 })
