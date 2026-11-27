@@ -1,6 +1,6 @@
 # Security policy
 
-tuiaux reads CI data with **your** API tokens. It never stores them: tokens are resolved at startup from `token_command`, environment variables, or the `gh` / `glab` CLIs, kept in memory and only sent to the configured API host.
+tuiaux reads CI data with **your** API tokens. It never stores them: they are read from the `gh` / `glab` CLIs when needed, kept in memory (redacted in logs) and only sent to github.com or gitlab.com. Text from CI APIs is stripped of control characters before tuiaux puts it into terminal escape sequences, and only `https://` links are handed to the system opener.
 
 ## Reporting a vulnerability
 

@@ -43,31 +43,34 @@
     "darwin"
   ],
   "scripts": {
-    "dev": "bun run src/cli/index.ts",
-    "demo": "bun run src/cli/index.ts --demo",
-    "demo:gif": "vhs docs/demo.tape",
-    "build": "bun build src/cli/index.ts --target bun --packages external --outfile dist/cli.js --minify",
+    "dev": "bun run src/main.ts",
+    "build": "bun build src/main.ts --target bun --packages external --outfile dist/cli.js --minify",
     "compile": "bun run scripts/compile.ts",
-    "snapshot": "bun --preload ./tests/setup.ts scripts/snapshot.tsx",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint && oxfmt --check",
-    "format": "oxlint --fix && oxfmt",
+    "prepare": "effect-tsgo patch --no-typescript --oxlint",
+    "lint": "oxlint src tests scripts && effect-tsgo patch --no-typescript --oxlint && oxlint --config .oxlintrc.effect.json --deny-warnings src tests scripts && oxfmt --check",
+    "format": "oxfmt",
     "check": "bun run lint && bun run typecheck && bun run test",
     "prepublishOnly": "bun run check && bun run build"
   },
   "dependencies": {
+    "@effect/atom-react": "4.1.7",
+    "@effect/platform-bun": "4.1.7",
     "@opentui/core": "0.9.9",
     "@opentui/react": "0.9.9",
+    "effect": "4.1.7",
     "react": "^19.3.1",
-    "zod": "^4.6.7"
+    "scheduler": "0.27.0"
   },
   "devDependencies": {
-    "@octokit/openapi-types": "^29.0.1",
+    "@effect/tsgo": "0.73.7",
+    "@oxlint/plugins": "1.95.0",
     "@types/bun": "^1.4.5",
     "@types/react": "^19.3.3",
     "oxfmt": "0.80.0",
     "oxlint": "1.95.0",
+    "oxlint-tsgolint": "7.0.2008",
     "typescript": "^7.0.2"
   }
 }

@@ -1,87 +1,79 @@
-import type { Job, RepoRef, Run, Status } from "../../core/types";
+import {
+  Job,
+  JobId,
+  JobRef,
+  type RepoRef,
+  Run,
+  RunId,
+  RunRef,
+  type Status,
+  isActive,
+} from "../../domain"
+import type { GlJob, GlPipeline } from "./api"
 
-/** Subset of the GitLab v4 API we rely on. */
-export interface GlPipeline {
-  id: number;
-  iid: number;
-  name?: string | null;
-  status: string;
-  source: string;
-  ref: string;
-  sha: string;
-  created_at: string;
-  updated_at: string;
-  started_at?: string | null;
-  finished_at?: string | null;
-  web_url: string;
-  user?: { username: string } | null;
-}
+/** Pure payload → domain mapping for GitLab CI. */
 
-export interface GlJob {
-  id: number;
-  name: string;
-  stage: string;
-  status: string;
-  started_at?: string | null;
-  finished_at?: string | null;
-  web_url: string;
-}
-
-const date = (s?: string | null) => (s ? new Date(s) : undefined);
-
-export function glStatus(s: string): Status {
-  switch (s) {
+/** One GitLab state → Status. `manual` (waiting for someone) and unknown states → idle. */
+export const glStatus = (status: string): Status => {
+  switch (status) {
     case "success":
-      return "success";
+      return "success"
     case "failed":
-      return "failure";
+      return "failure"
     case "running":
-      return "running";
+      return "running"
     case "created":
     case "pending":
     case "preparing":
     case "waiting_for_resource":
+    case "waiting_for_callback":
     case "scheduled":
-      return "queued";
+      return "queued"
     case "canceled":
     case "canceling":
-      return "cancelled";
+      return "cancelled"
     case "skipped":
-      return "skipped";
-    default: // manual
-      return "idle";
+      return "skipped"
+    default:
+      return "idle"
   }
 }
 
-export function mapPipeline(repo: RepoRef, p: GlPipeline, commitMessage = ""): Run {
-  const status = glStatus(p.status);
-  return {
-    id: String(p.id),
-    repo,
-    workflow: p.name || "pipeline",
-    number: p.iid,
+/**
+ * The pipeline list has no start/finish times and no commit title (one request per pipeline would be
+ * needed). Times are estimated from `created_at` (start) and `updated_at` (when it settled).
+ */
+export const mapPipeline = (repo: RepoRef, payload: GlPipeline): Run => {
+  const status = glStatus(payload.status)
+  const started = status !== "queued" && status !== "idle"
+
+  return new Run({
+    ref: new RunRef({ repo, id: RunId.make(String(payload.id)) }),
+    workflow: payload.name ?? payload.source,
+    number: payload.iid,
     status,
-    branch: p.ref,
-    commitSha: p.sha,
-    commitMessage,
-    event: p.source,
-    actor: p.user?.username,
-    createdAt: new Date(p.created_at),
-    startedAt: date(p.started_at) ?? (status === "running" ? new Date(p.created_at) : undefined),
-    finishedAt: date(p.finished_at),
-    url: p.web_url,
-  };
+    branch: payload.ref,
+    commitSha: payload.sha,
+    commitMessage: undefined,
+    event: payload.source,
+    actor: undefined,
+    createdAt: payload.created_at,
+    startedAt: started ? payload.created_at : undefined,
+    finishedAt: started && !isActive(status) ? payload.updated_at : undefined,
+    url: payload.web_url,
+  })
 }
 
-/** GitLab jobs have no steps; the stage is exposed as a single pseudo-step for context. */
-export function mapJob(j: GlJob): Job {
-  return {
-    id: String(j.id),
-    name: j.name,
-    status: glStatus(j.status),
-    startedAt: date(j.started_at),
-    finishedAt: date(j.finished_at),
-    steps: [{ name: `stage: ${j.stage}`, status: glStatus(j.status) }],
-    url: j.web_url,
-  };
-}
+/** GitLab jobs have no steps; they're grouped by `stage` instead. */
+export const mapJob = (run: RunRef, payload: GlJob): Job =>
+  new Job({
+    ref: new JobRef({ run, id: JobId.make(String(payload.id)) }),
+    name: payload.name,
+    stage: payload.stage,
+    status: glStatus(payload.status),
+    startedAt: payload.started_at ?? undefined,
+    finishedAt: payload.finished_at ?? undefined,
+    progress: undefined,
+    steps: [],
+    url: payload.web_url,
+  })

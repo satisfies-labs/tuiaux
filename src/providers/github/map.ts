@@ -1,80 +1,110 @@
-import type { components } from "@octokit/openapi-types";
-import type { Job, RepoRef, Run, Status } from "../../core/types";
+import {
+  Job,
+  JobId,
+  JobRef,
+  type RepoRef,
+  Run,
+  RunId,
+  RunRef,
+  type Status,
+  Step,
+  isActive,
+} from "../../domain"
+import type { GhJob, GhRun, GhStep } from "./api"
 
-type GhRun = components["schemas"]["workflow-run"];
-type GhJob = components["schemas"]["job"];
-type GhStep = NonNullable<GhJob["steps"]>[number];
+/** Pure payload → domain mapping for GitHub Actions. */
 
-const date = (s?: string | null) => (s ? new Date(s) : undefined);
-
-/** GitHub splits state into `status` + `conclusion`; fold them into one Status. */
-export function ghStatus(status?: string | null, conclusion?: string | null): Status {
+/** GitHub splits state into `status` + `conclusion`; fold them into one Status. Unknown → idle. */
+export const ghStatus = (
+  status: string | null,
+  conclusion: string | null,
+): Status => {
   switch (status) {
     case "queued":
     case "waiting":
     case "requested":
     case "pending":
-      return "queued";
+      return "queued"
     case "in_progress":
-      return "running";
+      return "running"
   }
+
   switch (conclusion) {
     case "success":
     case "neutral":
-      return "success";
+      return "success"
     case "failure":
     case "timed_out":
     case "startup_failure":
     case "action_required":
-      return "failure";
+      return "failure"
     case "cancelled":
     case "stale":
-      return "cancelled";
+      return "cancelled"
     case "skipped":
-      return "skipped";
+      return "skipped"
     default:
-      return "idle";
+      return "idle"
   }
 }
 
-export function mapRun(repo: RepoRef, r: GhRun): Run {
-  return {
-    id: String(r.id),
-    repo,
-    workflow: r.name ?? "workflow",
-    number: r.run_number,
-    status: ghStatus(r.status, r.conclusion),
-    branch: r.head_branch ?? "",
-    commitSha: r.head_sha,
-    commitMessage: (r.display_title || r.head_commit?.message || "").split("\n")[0] ?? "",
-    event: r.event,
-    actor: r.actor?.login,
-    createdAt: new Date(r.created_at),
-    startedAt: date(r.run_started_at),
-    finishedAt: r.status === "completed" ? date(r.updated_at) : undefined,
-    url: r.html_url,
-  };
+/** First line of a commit title; undefined when blank. */
+const firstLine = (text: string | undefined): string | undefined => {
+  const line = text?.split("\n")[0]?.trim()
+
+  return line === "" ? undefined : line
 }
 
-const mapStep = (s: GhStep) => ({
-  name: s.name,
-  status: ghStatus(s.status, s.conclusion),
-  startedAt: date(s.started_at),
-  finishedAt: date(s.completed_at),
-});
+export const mapRun = (repo: RepoRef, payload: GhRun): Run => {
+  const status = ghStatus(payload.status, payload.conclusion)
 
-export function mapJob(j: GhJob): Job {
-  const steps = (j.steps ?? []).map(mapStep);
-  const done = steps.filter((s) => s.status !== "running" && s.status !== "queued").length;
-  const status = ghStatus(j.status, j.conclusion);
-  return {
-    id: String(j.id),
-    name: j.name,
+  return new Run({
+    ref: new RunRef({ repo, id: RunId.make(String(payload.id)) }),
+    workflow: payload.name ?? "workflow",
+    number: payload.run_number,
     status,
-    startedAt: date(j.started_at),
-    finishedAt: date(j.completed_at),
-    progress: status === "running" && steps.length > 0 ? done / steps.length : undefined,
+    branch: payload.head_branch ?? "",
+    commitSha: payload.head_sha,
+    commitMessage: firstLine(payload.display_title),
+    event: payload.event,
+    actor: payload.actor?.login,
+    createdAt: payload.created_at,
+    startedAt: payload.run_started_at ?? undefined,
+    // The list has no completion time; `updated_at` is when it settled.
+    finishedAt: payload.status === "completed" ? payload.updated_at : undefined,
+    url: payload.html_url,
+  })
+}
+
+const mapStep = (payload: GhStep): Step =>
+  new Step({
+    name: payload.name,
+    status: ghStatus(payload.status, payload.conclusion),
+    startedAt: payload.started_at ?? undefined,
+    finishedAt: payload.completed_at ?? undefined,
+  })
+
+export const mapJob = (run: RunRef, payload: GhJob): Job => {
+  const status = ghStatus(payload.status, payload.conclusion)
+
+  const steps = (payload.steps ?? [])
+    .toSorted((a, b) => a.number - b.number)
+    .map(mapStep)
+
+  const done = steps.filter(step => !isActive(step.status)).length
+
+  return new Job({
+    ref: new JobRef({ run, id: JobId.make(String(payload.id)) }),
+    name: payload.name,
+    stage: undefined,
+    status,
+    startedAt: payload.started_at ?? undefined,
+    finishedAt: payload.completed_at ?? undefined,
+    progress:
+      status === "running" && steps.length > 0
+        ? done / steps.length
+        : undefined,
     steps,
-    url: j.html_url ?? undefined,
-  };
+    url: payload.html_url ?? undefined,
+  })
 }

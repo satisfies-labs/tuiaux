@@ -1,0 +1,8 @@
+[
+  { "id": 7003, "name": "deploy", "stage": "deploy", "status": "skipped",
+    "started_at": null, "finished_at": null, "web_url": "https://gitlab.com/team/web/-/jobs/7003" },
+  { "id": 7002, "name": "test", "stage": "test", "status": "failed",
+    "started_at": "2026-11-26T19:00:30Z", "finished_at": "2026-11-26T19:00:58Z", "web_url": "https://gitlab.com/team/web/-/jobs/7002" },
+  { "id": 7001, "name": "install", "stage": "build", "status": "success",
+    "started_at": "2026-11-26T19:00:05Z", "finished_at": "2026-11-26T19:00:28Z", "web_url": "https://gitlab.com/team/web/-/jobs/7001" }
+]
