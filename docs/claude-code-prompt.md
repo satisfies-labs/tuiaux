@@ -4,7 +4,7 @@ Colle ce prompt dans Claude Code, à la racine du repo, après `bun install`.
 
 ---
 
-Tu travailles sur **tuiaux**, une TUI open source (MIT) qui affiche en direct les pipelines GitHub Actions et GitLab CI (y compris auto-hébergé) depuis le terminal. Stack : Bun ≥ 1.3, TypeScript strict, OpenTUI React, zod, Biome, `bun test`. Plateformes : Linux et macOS.
+Tu travailles sur **tuiaux**, une TUI open source (MIT) qui affiche en direct les pipelines GitHub Actions et GitLab CI (y compris auto-hébergé) depuis le terminal. Stack : Bun ≥ 1.3, TypeScript strict, OpenTUI React, zod, oxlint + oxfmt, `bun test`. Plateformes : Linux et macOS.
 
 **Avant toute chose**, lis `CLAUDE.md`, `docs/architecture.md`, `docs/roadmap.md` et regarde les maquettes dans `docs/design/` (`*.txt` et PNG). Lance `bun run check`, `bun run demo` et `bun run snapshot` pour voir l'état actuel. La base fonctionne déjà : modèle de données, providers GitHub/GitLab, polling, 3 vues, thèmes, CLI, tests, CI.
 

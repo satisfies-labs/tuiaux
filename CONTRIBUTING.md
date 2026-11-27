@@ -18,13 +18,13 @@ bun run dev          # the real thing, in the current repo
 | `bun run check`                               | lint + typecheck + tests — run before every push |
 | `bun test`                                    | tests (`tests/`)                                 |
 | `bun run snapshot [dashboard\|detail\|watch]` | render a view to plain text with demo data       |
-| `bun run format`                              | fix formatting and imports (Biome)               |
+| `bun run format`                              | fix lint and formatting (oxlint + oxfmt)         |
 | `bun run compile`                             | standalone binary in `dist/`                     |
 
 ## Ground rules
 
 - Read [docs/architecture.md](docs/architecture.md): layers only depend downwards (`core` ← `providers` ← `services` ← `state` ← `ui` ← `cli`).
-- TypeScript strict, no `any`. Biome decides formatting.
+- TypeScript strict, no `any`. oxfmt decides formatting.
 - Every provider mapping gets a test with a recorded API fixture in `tests/fixtures/`. No network in tests.
 - UI changes: paste the before/after `bun run snapshot` output in the PR.
 - Colors only come from theme tokens. Status colors are for statuses only.

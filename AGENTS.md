@@ -8,7 +8,7 @@ tuiaux is a TUI that shows GitHub Actions and GitLab CI pipelines live in the te
 - `bun test` · `bun test tests/providers` — tests (no network, ever)
 - `bun run demo` — run the TUI on fake data (no token)
 - `bun run snapshot [dashboard|detail|watch] [cols] [rows]` — print a view as text; use it to check layout after UI changes
-- `bun run format` — Biome autofix
+- `bun run format` — oxlint --fix + oxfmt
 - `bun run compile` — standalone binary in `dist/`
 
 ## Architecture (read docs/architecture.md)
