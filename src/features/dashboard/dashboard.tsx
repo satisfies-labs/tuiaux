@@ -1,17 +1,18 @@
 import { useEffect } from "react"
 
 import { useAtom, useAtomSet } from "@effect/atom-react"
-import { useKeyboard, useTerminalDimensions } from "@opentui/react"
+import { useTerminalDimensions } from "@opentui/react"
 
 import type { RepoRef } from "../../domain"
 import type { MonitorState, RepoEntry } from "../../monitor"
 import {
-  Dialog,
-  type Hint,
-  KeyHints,
+  type Command,
+  Overlay,
+  Screen,
   StatusDot,
   View,
   moveBy,
+  overlayAtom,
   plural,
   useApp,
   useNow,
@@ -19,25 +20,13 @@ import {
   viewAtom,
 } from "../../ui"
 import { JobsPanel } from "./jobs-panel"
-import { forgetAtom, groupByProvider, selectionAtom, tally } from "./model"
+import { groupByProvider, selectionAtom, tally } from "./model"
 import { RepoList } from "./repo-list"
 import { RunsTable } from "./runs-table"
 
 /** The repos panel takes about a third of the width, within readable bounds. */
 const reposWidth = (width: number) =>
   Math.min(44, Math.max(32, Math.floor(width * 0.36)))
-
-export const DASHBOARD_HINTS: ReadonlyArray<Hint> = [
-  ["↑↓", "move"],
-  ["tab", "panel"],
-  ["⏎", "details"],
-  ["w", "watch"],
-  ["o", "open"],
-  ["d", "forget"],
-  ["r", "refresh"],
-  ["?", "help"],
-  ["q", "quit"],
-]
 
 const repoUrl = (repo: RepoRef) => `https://${repo.host}/${repo.path}`
 
@@ -69,41 +58,14 @@ const Summary = ({
   )
 }
 
-const ForgetDialog = ({ repo }: { readonly repo: RepoRef }) => {
-  const theme = useTheme()
-
-  return (
-    <Dialog title="forget repo">
-      <text fg={theme.text}>{`Forget ${repo.path}?`}</text>
-      <text fg={theme.muted}>
-        It leaves the list until it shows runs again from its own directory.
-      </text>
-      <box marginTop={1}>
-        <KeyHints
-          hints={[
-            ["y", "forget"],
-            ["n", "keep"],
-          ]}
-        />
-      </box>
-    </Dialog>
-  )
-}
-
 /** Repos on the left, runs and jobs of the selection on the right. `active`: keys are ours. */
-export const Dashboard = ({
-  state,
-  active,
-}: {
-  readonly state: MonitorState
-  readonly active: boolean
-}) => {
+export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
   const app = useApp()
   const theme = useTheme()
   const now = useNow()
   const { width, height } = useTerminalDimensions()
   const [selection, setSelection] = useAtom(selectionAtom)
-  const [forgetting, setForgetting] = useAtom(forgetAtom)
+  const setOverlay = useAtomSet(overlayAtom)
   const setView = useAtomSet(viewAtom)
 
   const groups = groupByProvider(state.repos)
@@ -145,63 +107,123 @@ export const Dashboard = ({
           },
     )
 
-  useKeyboard(key => {
-    if (!active) return
-
-    if (forgetting !== undefined) {
-      if (key.name === "y") app.run(monitor => monitor.forget(forgetting))
-
-      if (["y", "n", "escape"].includes(key.name)) setForgetting(undefined)
-
-      return
-    }
-
-    switch (key.name) {
-      case "j":
-      case "down":
-        return move(1)
-      case "k":
-      case "up":
-        return move(-1)
-      case "tab":
-        return setSelection({
-          ...selection,
-          panel: runsFocused ? "repos" : "runs",
-        })
-      case "l":
-      case "right":
-        return setSelection({ ...selection, panel: "runs" })
-      case "h":
-      case "left":
-        return setSelection({ ...selection, panel: "repos" })
-      case "return":
-        if (run !== undefined) setView(View.RunDetail({ run: run.ref }))
-
-        return
-      case "w":
-        if (run !== undefined) setView(View.Watch({ run: run.ref }))
-
-        return
-      case "o":
-        if (runsFocused && run !== undefined) app.open(run.url)
-        else if (entry !== undefined) app.open(repoUrl(entry.repo))
-
-        return
-      case "d":
-        if (!runsFocused && entry !== undefined && !entry.current)
-          setForgetting(entry.repo)
-    }
-  })
+  const commands: ReadonlyArray<Command> = [
+    {
+      id: "dashboard.down",
+      title: "Move down",
+      group: "Actions",
+      keys: ["j", "down"],
+      hint: "move",
+      palette: false,
+      run: () => move(1),
+    },
+    {
+      id: "dashboard.up",
+      title: "Move up",
+      group: "Actions",
+      keys: ["k", "up"],
+      palette: false,
+      run: () => move(-1),
+    },
+    {
+      id: "dashboard.panel",
+      title: "Switch panel",
+      group: "Actions",
+      keys: ["tab"],
+      hint: "panel",
+      palette: false,
+      run: () =>
+        setSelection({ ...selection, panel: runsFocused ? "repos" : "runs" }),
+    },
+    {
+      id: "dashboard.runs",
+      title: "Focus runs",
+      group: "Actions",
+      keys: ["l", "right"],
+      palette: false,
+      run: () => setSelection({ ...selection, panel: "runs" }),
+    },
+    {
+      id: "dashboard.repos",
+      title: "Focus repos",
+      group: "Actions",
+      keys: ["h", "left"],
+      palette: false,
+      run: () => setSelection({ ...selection, panel: "repos" }),
+    },
+    ...(run === undefined
+      ? []
+      : [
+          {
+            id: "run.details",
+            title: "Open run details",
+            group: "Actions",
+            keys: ["return"],
+            hint: "details",
+            run: () => setView(View.RunDetail({ run: run.ref })),
+          } satisfies Command,
+          {
+            id: "run.watch",
+            title: "Watch run",
+            group: "Actions",
+            keys: ["w"],
+            hint: "watch",
+            run: () => setView(View.Watch({ run: run.ref })),
+          } satisfies Command,
+        ]),
+    ...(entry === undefined
+      ? []
+      : [
+          {
+            id: "dashboard.open",
+            title:
+              runsFocused && run !== undefined
+                ? "Open run in browser"
+                : "Open repo in browser",
+            group: "Actions",
+            keys: ["o"],
+            hint: "open",
+            run: () =>
+              app.open(
+                runsFocused && run !== undefined
+                  ? run.url
+                  : repoUrl(entry.repo),
+              ),
+          } satisfies Command,
+        ]),
+    ...(entry === undefined || entry.current
+      ? []
+      : [
+          {
+            id: "repo.forget",
+            title: "Forget repo",
+            group: "Actions",
+            keys: ["d"],
+            hint: "forget",
+            run: () =>
+              setOverlay(
+                Overlay.Confirm({
+                  title: "forget repo",
+                  message: `Forget ${entry.repo.path}? It leaves the list until it shows runs again from its own directory.`,
+                  confirm: "forget",
+                  run: () => app.run(monitor => monitor.forget(entry.repo)),
+                }),
+              ),
+          } satisfies Command,
+        ]),
+  ]
 
   if (state.repos.length === 0)
     return (
-      <box paddingX={1} paddingY={1}>
-        <text fg={theme.muted}>
-          {state.inGitRepo
-            ? "This repo's remote isn't on github.com or gitlab.com."
-            : "You are currently not in a Git repo, and no repo is remembered yet."}
-        </text>
-      </box>
+      <Screen commands={commands}>
+        <box paddingX={1} paddingY={1}>
+          <text fg={theme.muted}>
+            {state.inGitRepo
+              ? "This repo's remote isn't on github.com or gitlab.com."
+              : "You are currently not in a Git repo, and no repo is remembered yet."}
+          </text>
+        </box>
+      </Screen>
     )
 
   // Header, summary and status lines take one row each.
@@ -211,7 +233,7 @@ export const Dashboard = ({
   const rightWidth = width - repoWidth
 
   return (
-    <box flexDirection="column" flexGrow={1}>
+    <Screen commands={commands}>
       <Summary repos={state.repos} inGitRepo={state.inGitRepo} />
       <box flexDirection="row" flexGrow={1}>
         <RepoList
@@ -240,7 +262,6 @@ export const Dashboard = ({
           />
         </box>
       </box>
-      {forgetting !== undefined && <ForgetDialog repo={forgetting} />}
-    </box>
+    </Screen>
   )
 }

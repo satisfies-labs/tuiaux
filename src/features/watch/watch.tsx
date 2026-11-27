@@ -2,7 +2,7 @@ import { Equal } from "effect"
 import { useEffect } from "react"
 
 import { useAtomSet } from "@effect/atom-react"
-import { useKeyboard, useTerminalDimensions } from "@opentui/react"
+import { useTerminalDimensions } from "@opentui/react"
 
 import {
   type Job,
@@ -14,9 +14,10 @@ import {
 } from "../../domain"
 import type { MonitorState } from "../../monitor"
 import {
-  type Hint,
+  type Command,
   Panel,
   ProgressBar,
+  Screen,
   StatusDot,
   View,
   formatDuration,
@@ -25,12 +26,6 @@ import {
   useTheme,
   viewAtom,
 } from "../../ui"
-
-export const WATCH_HINTS: ReadonlyArray<Hint> = [
-  ["o", "open"],
-  ["esc", "back"],
-  ["q", "quit"],
-]
 
 /** Average completion of the jobs; before any job shows up, 0 while active and 1 once settled. */
 const overall = (jobs: ReadonlyArray<Job>, run: Run): number => {
@@ -43,11 +38,9 @@ const overall = (jobs: ReadonlyArray<Job>, run: Run): number => {
 export const Watch = ({
   state,
   target,
-  active,
 }: {
   readonly state: MonitorState
   readonly target: RunRef
-  readonly active: boolean
 }) => {
   const app = useApp()
   const theme = useTheme()
@@ -66,21 +59,38 @@ export const Watch = ({
 
   useEffect(() => app.run(monitor => monitor.focusRun(target)), [app, target])
 
-  useKeyboard(key => {
-    if (!active) return
-
-    if (key.name === "escape" || key.name === "backspace")
-      setView(View.Dashboard())
-    else if (key.name === "o" && run !== undefined) app.open(run.url)
-  })
+  const commands: ReadonlyArray<Command> = [
+    ...(run === undefined
+      ? []
+      : [
+          {
+            id: "watch.open",
+            title: "Open run in browser",
+            group: "Actions",
+            keys: ["o"],
+            hint: "open",
+            run: () => app.open(run.url),
+          } satisfies Command,
+        ]),
+    {
+      id: "watch.back",
+      title: "Back",
+      group: "Actions",
+      keys: ["escape", "backspace"],
+      hint: "back",
+      run: () => setView(View.Dashboard()),
+    },
+  ]
 
   if (run === undefined)
     return (
-      <box flexGrow={1} paddingX={1} paddingY={1}>
-        <text fg={theme.muted}>
-          This run isn't in the recent list anymore. Press esc to go back.
-        </text>
-      </box>
+      <Screen commands={commands}>
+        <box flexGrow={1} paddingX={1} paddingY={1}>
+          <text fg={theme.muted}>
+            This run isn't in the recent list anymore. Press esc to go back.
+          </text>
+        </box>
+      </Screen>
     )
 
   const progress = overall(jobs, run)
@@ -90,34 +100,36 @@ export const Watch = ({
   const name = run.ref.repo.path.split("/").at(-1) ?? run.ref.repo.path
 
   return (
-    <box flexGrow={1} paddingX={1} paddingY={1}>
-      <Panel title="watch">
-        <box flexDirection="row" justifyContent="space-between">
+    <Screen commands={commands}>
+      <box flexGrow={1} paddingX={1} paddingY={1}>
+        <Panel title="watch">
+          <box flexDirection="row" justifyContent="space-between">
+            <text wrapMode="none">
+              <StatusDot status={run.status} />
+              <span
+                fg={theme.text}
+              >{` ${name} · ${run.workflow} #${run.number} · ${run.branch}`}</span>
+            </text>
+            <text wrapMode="none" fg={theme.muted}>
+              {formatDuration(elapsed(run, now))}
+            </text>
+          </box>
           <text wrapMode="none">
-            <StatusDot status={run.status} />
-            <span
-              fg={theme.text}
-            >{` ${name} · ${run.workflow} #${run.number} · ${run.branch}`}</span>
+            <ProgressBar value={progress} width={bar} status={run.status} />
+            <span fg={theme.muted}>{` ${percent}`}</span>
           </text>
           <text wrapMode="none" fg={theme.muted}>
-            {formatDuration(elapsed(run, now))}
+            {jobs.length === 0
+              ? "Loading jobs…"
+              : jobs.map(job => (
+                  <span key={job.ref.id}>
+                    <StatusDot status={job.status} />
+                    {` ${job.name}  `}
+                  </span>
+                ))}
           </text>
-        </box>
-        <text wrapMode="none">
-          <ProgressBar value={progress} width={bar} status={run.status} />
-          <span fg={theme.muted}>{` ${percent}`}</span>
-        </text>
-        <text wrapMode="none" fg={theme.muted}>
-          {jobs.length === 0
-            ? "Loading jobs…"
-            : jobs.map(job => (
-                <span key={job.ref.id}>
-                  <StatusDot status={job.status} />
-                  {` ${job.name}  `}
-                </span>
-              ))}
-        </text>
-      </Panel>
-    </box>
+        </Panel>
+      </box>
+    </Screen>
   )
 }

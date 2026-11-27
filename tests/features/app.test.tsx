@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test"
+import { expect, spyOn, test } from "bun:test"
 
 import { RateLimited } from "../../src/domain"
 import { UnknownKey } from "../../src/platform"
@@ -68,4 +68,25 @@ test("config issues open first; keys wait until esc closes them", async () => {
 
   expect(app.commands).not.toContain("refresh")
   expect(app.frame()).not.toContain("unknown setting")
+})
+
+test("at 80 columns the hints fit and the commands key stays visible", async () => {
+  const app = await renderApp(twoRepos, { width: 80, height: 24 })
+  const frame = app.frame()
+
+  expect(frame).toContain("^K commands")
+
+  for (const line of frame.split("\n"))
+    expect(line.length).toBeLessThanOrEqual(80)
+})
+
+test("the key list draws each command once", async () => {
+  const errors = spyOn(console, "error").mockImplementation(() => {})
+  const app = await renderApp(twoRepos)
+
+  await app.press("?")
+
+  expect(app.frame().match(/Quit/g)?.length).toBe(1)
+  expect(errors).not.toHaveBeenCalled()
+  errors.mockRestore()
 })

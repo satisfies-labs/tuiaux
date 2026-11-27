@@ -4,7 +4,6 @@ import { Atom } from "effect/reactivity"
 import {
   type ProviderKind,
   type RepoKey,
-  type RepoRef,
   type Run,
   type RunId,
   type Tone,
@@ -29,9 +28,6 @@ export const selectionAtom = Atom.make<Selection>({
   repo: undefined,
   run: undefined,
 }).pipe(Atom.keepAlive)
-
-/** The repo waiting for a forget confirmation. */
-export const forgetAtom = Atom.make<RepoRef | undefined>(undefined)
 
 export interface ProviderGroup {
   readonly kind: ProviderKind
