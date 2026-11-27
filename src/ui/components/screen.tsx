@@ -44,7 +44,7 @@ export const Screen = ({
   }, [flash, setFlash])
 
   const hints = all.flatMap((command): ReadonlyArray<Hint> => {
-    const key = command.keys[0]
+    const key = command.hintKey ?? command.keys[0]
 
     return command.hint === undefined || key === undefined
       ? []

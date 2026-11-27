@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 
-import { useAtom, useAtomSet } from "@effect/atom-react"
+import { useAtom } from "@effect/atom-react"
 import { useTerminalDimensions } from "@opentui/react"
 
 import { type Run, type RunRef, elapsed, isActive } from "../../domain"
@@ -14,9 +14,9 @@ import {
   formatDuration,
   moveBy,
   useApp,
+  useNavigation,
   useNow,
   useTheme,
-  viewAtom,
 } from "../../ui"
 import { JobList } from "./job-list"
 import { defaultJob, findRun, jobSelectionAtom, jobsOf } from "./model"
@@ -71,7 +71,7 @@ export const RunDetail = ({
   const theme = useTheme()
   const now = useNow()
   const { width, height } = useTerminalDimensions()
-  const setView = useAtomSet(viewAtom)
+  const { go, back } = useNavigation()
   const [selectedJob, setSelectedJob] = useAtom(jobSelectionAtom)
 
   const run = findRun(state, target)
@@ -99,6 +99,7 @@ export const RunDetail = ({
       group: "Actions",
       keys: ["j", "down"],
       hint: "job",
+      hintKey: "↑↓",
       palette: false,
       run: () => select(1),
     },
@@ -116,7 +117,7 @@ export const RunDetail = ({
       group: "Actions",
       keys: ["escape", "backspace"],
       hint: "back",
-      run: () => setView(View.Dashboard()),
+      run: () => back(),
     },
     {
       id: "run.watch",
@@ -124,7 +125,7 @@ export const RunDetail = ({
       group: "Actions",
       keys: ["w"],
       hint: "watch",
-      run: () => setView(View.Watch({ run: target })),
+      run: () => go(View.Watch({ run: target })),
     },
     ...(url === undefined
       ? []

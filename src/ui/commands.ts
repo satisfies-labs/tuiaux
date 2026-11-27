@@ -16,6 +16,8 @@ export interface Command {
   readonly keys: ReadonlyArray<string>
   /** Short label in the status line, in array order; none keeps it out of the line. */
   readonly hint?: string | undefined
+  /** What the hint shows as the key, when not the first binding (e.g. `↑↓`). */
+  readonly hintKey?: string | undefined
   /** Listed in the palette unless false. */
   readonly palette?: boolean | undefined
   /** Right column in the palette, e.g. `main · 12m`. */

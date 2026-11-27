@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 
-import { RegistryProvider, useAtom, useAtomSet } from "@effect/atom-react"
+import { RegistryProvider, useAtomSet } from "@effect/atom-react"
 import { useKeyboard } from "@opentui/react"
 
 import {
@@ -19,9 +19,9 @@ import {
   overlayAtom,
   useApp,
   useMonitorState,
+  useNavigation,
   useNow,
   useTheme,
-  viewAtom,
 } from "../../ui"
 import { Dashboard } from "../dashboard/dashboard"
 import { selectionAtom } from "../dashboard/model"
@@ -35,7 +35,7 @@ export const App = () => {
   const theme = useTheme()
   const state = useMonitorState()
   const now = useNow()
-  const [view, setView] = useAtom(viewAtom)
+  const { view, lastRun, go } = useNavigation()
   const setSelection = useAtomSet(selectionAtom)
   const setOverlay = useAtomSet(overlayAtom)
   const setFlash = useAtomSet(flashAtom)
@@ -59,7 +59,55 @@ export const App = () => {
     if (key.ctrl && key.name === "c") app.quit()
   })
 
+  const tabs = [
+    { key: "1", label: "Dashboard", view: View.Dashboard() },
+    {
+      key: "2",
+      label: "Run",
+      view: lastRun && View.RunDetail({ run: lastRun }),
+    },
+    { key: "3", label: "Watch", view: lastRun && View.Watch({ run: lastRun }) },
+  ].map(tab => ({
+    ...tab,
+    active: tab.view !== undefined && tab.view._tag === view._tag,
+    enabled: tab.view !== undefined,
+  }))
+
+  const cycle = (delta: number) => {
+    const enabled = tabs.filter(tab => tab.enabled)
+    const at = enabled.findIndex(tab => tab.active)
+    const next = enabled.at((at + delta) % enabled.length)?.view
+
+    if (next !== undefined) go(next)
+  }
+
   const globals: ReadonlyArray<Command> = [
+    ...tabs.map((tab): Command => ({
+      id: `tab.${tab.key}`,
+      title: `Go to ${tab.label.toLowerCase()}`,
+      group: "Actions",
+      keys: [tab.key],
+      palette: tab.enabled && !tab.active,
+      run: () => {
+        if (tab.view !== undefined) go(tab.view)
+      },
+    })),
+    {
+      id: "tab.next",
+      title: "Next tab",
+      group: "Actions",
+      keys: ["]"],
+      palette: false,
+      run: () => cycle(1),
+    },
+    {
+      id: "tab.previous",
+      title: "Previous tab",
+      group: "Actions",
+      keys: ["["],
+      palette: false,
+      run: () => cycle(-1),
+    },
     {
       id: "app.refresh",
       title: "Refresh now",
@@ -105,9 +153,9 @@ export const App = () => {
       now,
       repo => {
         setSelection({ panel: "repos", repo, run: undefined })
-        setView(View.Dashboard())
+        go(View.Dashboard())
       },
-      run => setView(View.RunDetail({ run })),
+      run => go(View.RunDetail({ run })),
     ),
   ]
 
@@ -118,7 +166,7 @@ export const App = () => {
       height="100%"
       backgroundColor={theme.bg}
     >
-      <Header version={app.version} />
+      <Header tabs={tabs} state={state} now={now} />
       <GlobalCommandsContext value={globals}>
         {View.$match(view, {
           Dashboard: () => <Dashboard state={state} />,

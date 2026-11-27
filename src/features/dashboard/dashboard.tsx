@@ -15,9 +15,9 @@ import {
   overlayAtom,
   plural,
   useApp,
+  useNavigation,
   useNow,
   useTheme,
-  viewAtom,
 } from "../../ui"
 import { JobsPanel } from "./jobs-panel"
 import { groupByProvider, selectionAtom, tally } from "./model"
@@ -66,7 +66,7 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
   const { width, height } = useTerminalDimensions()
   const [selection, setSelection] = useAtom(selectionAtom)
   const setOverlay = useAtomSet(overlayAtom)
-  const setView = useAtomSet(viewAtom)
+  const { go } = useNavigation()
 
   const groups = groupByProvider(state.repos)
   const repos = groups.flatMap(group => group.repos)
@@ -114,6 +114,7 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
       group: "Actions",
       keys: ["j", "down"],
       hint: "move",
+      hintKey: "↑↓",
       palette: false,
       run: () => move(1),
     },
@@ -160,7 +161,7 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
             group: "Actions",
             keys: ["return"],
             hint: "details",
-            run: () => setView(View.RunDetail({ run: run.ref })),
+            run: () => go(View.RunDetail({ run: run.ref })),
           } satisfies Command,
           {
             id: "run.watch",
@@ -168,7 +169,7 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
             group: "Actions",
             keys: ["w"],
             hint: "watch",
-            run: () => setView(View.Watch({ run: run.ref })),
+            run: () => go(View.Watch({ run: run.ref })),
           } satisfies Command,
         ]),
     ...(entry === undefined

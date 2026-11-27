@@ -3,7 +3,7 @@ import { expect, test } from "bun:test"
 import { RateLimited } from "../../src/domain"
 import { UnknownKey } from "../../src/platform"
 import { entry, renderApp, stateOf } from "../support/app"
-import { repo } from "../support/domain"
+import { repo, run, runRef } from "../support/domain"
 
 const twoRepos = stateOf({
   repos: [entry({ repo: repo("acme/api") }), entry({ repo: repo("acme/web") })],
@@ -12,7 +12,8 @@ const twoRepos = stateOf({
 test("shows the header, the repos and the keys", async () => {
   const app = await renderApp(twoRepos)
 
-  expect(app.frame()).toContain("tuiaux v1.2.3")
+  expect(app.frame()).toContain("1 Dashboard")
+  expect(app.frame()).not.toContain("v1.2.3")
   expect(app.frame()).toContain("acme/api")
   expect(app.frame()).toContain("r refresh")
 })
@@ -68,4 +69,47 @@ test("at 80 columns the hints fit and the commands key stays visible", async () 
 
   for (const line of frame.split("\n"))
     expect(line.length).toBeLessThanOrEqual(80)
+})
+
+const API = repo("acme/api")
+
+const withRun = stateOf({
+  repos: [entry({ repo: API, runs: [run({ ref: runRef("12", API) })] })],
+})
+
+test("2 and 3 do nothing before a run was opened", async () => {
+  const app = await renderApp(withRun)
+
+  await app.press("2", "3")
+
+  expect(app.frame()).toContain("─ Repos ─")
+})
+
+test("esc from watch goes back to the run detail it came from", async () => {
+  const app = await renderApp(withRun)
+
+  await app.interact(() => app.setup.mockInput.pressEnter())
+  await app.press("w")
+  expect(app.frame()).toContain("─ watch ─")
+
+  await app.interact(() => app.setup.mockInput.pressEscape())
+  expect(app.frame()).toContain("─ Jobs ─")
+  expect(app.frame()).not.toContain("─ Repos ─")
+
+  await app.press("1")
+  expect(app.frame()).toContain("─ Repos ─")
+
+  await app.press("3")
+  expect(app.frame()).toContain("─ watch ─")
+})
+
+test("esc from a run that left the list goes back to the dashboard", async () => {
+  const app = await renderApp(withRun)
+
+  await app.interact(() => app.setup.mockInput.pressEnter())
+  await app.update(stateOf({ repos: [entry({ repo: API, runs: [] })] }))
+  expect(app.frame()).toContain("isn't in the recent list anymore")
+
+  await app.interact(() => app.setup.mockInput.pressEscape())
+  expect(app.frame()).toContain("─ Repos ─")
 })

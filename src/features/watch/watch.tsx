@@ -1,7 +1,6 @@
 import { Equal } from "effect"
 import { useEffect } from "react"
 
-import { useAtomSet } from "@effect/atom-react"
 import { useTerminalDimensions } from "@opentui/react"
 
 import {
@@ -19,12 +18,11 @@ import {
   ProgressBar,
   Screen,
   StatusDot,
-  View,
   formatDuration,
   useApp,
+  useNavigation,
   useNow,
   useTheme,
-  viewAtom,
 } from "../../ui"
 
 /** Average completion of the jobs; before any job shows up, 0 while active and 1 once settled. */
@@ -46,7 +44,7 @@ export const Watch = ({
   const theme = useTheme()
   const now = useNow()
   const { width } = useTerminalDimensions()
-  const setView = useAtomSet(viewAtom)
+  const { back } = useNavigation()
 
   const run = state
     .entry(target.repo)
@@ -78,7 +76,7 @@ export const Watch = ({
       group: "Actions",
       keys: ["escape", "backspace"],
       hint: "back",
-      run: () => setView(View.Dashboard()),
+      run: () => back(),
     },
   ]
 

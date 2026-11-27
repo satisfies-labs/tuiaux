@@ -13,3 +13,5 @@ export * from "./progress-bar"
 export * from "./screen"
 
 export * from "./status-dot"
+
+export * from "./tabs"
