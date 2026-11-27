@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { Duration, Equal, Option, Schema } from "effect"
 
-import { Job, Run, elapsed, hasSettled } from "../../src/domain"
+import { Job, Run, duration, elapsed, hasSettled } from "../../src/domain"
 import { T0, job, run } from "../support/domain"
 
 const at = (seconds: number) => new Date(T0.getTime() + seconds * 1000)
@@ -55,27 +55,41 @@ describe("Job", () => {
   })
 })
 
-describe("elapsed", () => {
+describe("elapsed and duration", () => {
+  const timed = (
+    status: "running" | "success" | "skipped",
+    startedAt?: Date,
+    finishedAt?: Date,
+  ) => ({ status, startedAt, finishedAt })
+
+  const seconds = (value: Option.Option<Duration.Duration>) =>
+    Option.map(value, Duration.toSeconds)
+
   test("none before start", () => {
-    expect(Option.isNone(elapsed({}, at(10)))).toBe(true)
+    expect(Option.isNone(elapsed(timed("running"), at(10)))).toBe(true)
   })
 
-  test("until now while running, until finish once finished", () => {
-    expect(
-      elapsed({ startedAt: at(0) }, at(42)).pipe(
-        Option.map(Duration.toSeconds),
-      ),
-    ).toEqual(Option.some(42))
-    expect(
-      elapsed({ startedAt: at(0), finishedAt: at(30) }, at(99)).pipe(
-        Option.map(Duration.toSeconds),
-      ),
-    ).toEqual(Option.some(30))
+  test("until now while active, until finish once finished", () => {
+    expect(seconds(elapsed(timed("running", at(0)), at(42)))).toEqual(
+      Option.some(42),
+    )
+    expect(seconds(elapsed(timed("success", at(0), at(30)), at(99)))).toEqual(
+      Option.some(30),
+    )
+    expect(seconds(duration(timed("success", at(0), at(30))))).toEqual(
+      Option.some(30),
+    )
+  })
+
+  test("a settled item without an end has no duration, however late it is", () => {
+    expect(Option.isNone(elapsed(timed("skipped", at(0)), at(999)))).toBe(true)
   })
 
   test("never negative (clock skew between us and the provider)", () => {
     expect(
-      elapsed({ startedAt: at(10) }, at(5)).pipe(Option.map(Duration.toMillis)),
+      elapsed(timed("running", at(10)), at(5)).pipe(
+        Option.map(Duration.toMillis),
+      ),
     ).toEqual(Option.some(0))
   })
 })

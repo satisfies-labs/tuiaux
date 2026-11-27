@@ -1,6 +1,6 @@
 import { Option } from "effect"
 
-import type { Run } from "../../domain"
+import { type Run, elapsed } from "../../domain"
 import type { RepoEntry } from "../../monitor"
 import {
   Panel,
@@ -12,7 +12,7 @@ import {
   useTheme,
   visibleWindow,
 } from "../../ui"
-import { runStats, runTime } from "./model"
+import { runStats } from "./model"
 
 const WORKFLOW = 10
 const NUMBER = 5
@@ -56,7 +56,7 @@ const RunRow = ({
       <span fg={theme.text}>{fit(run.commitMessage ?? "—", commit)} </span>
       {event && <span fg={theme.muted}>{fit(run.event, EVENT)} </span>}
       <span fg={theme.muted}>
-        {fit(formatDuration(runTime(run, now)), TIME)}{" "}
+        {fit(formatDuration(elapsed(run, now)), TIME)}{" "}
       </span>
       <span fg={theme.muted}>{fit(formatAge(run.createdAt, now), AGE)}</span>
     </text>

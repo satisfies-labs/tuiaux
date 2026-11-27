@@ -8,7 +8,7 @@ import {
   type Run,
   type RunId,
   type Tone,
-  elapsed,
+  duration,
   isActive,
   toneOf,
 } from "../../domain"
@@ -83,9 +83,7 @@ export interface RunStats {
 export const runStats = (runs: ReadonlyArray<Run>): RunStats => {
   const settled = runs.filter(run => !isActive(run.status))
 
-  const durations = settled.flatMap(run =>
-    Option.toArray(elapsed(run, run.finishedAt ?? run.createdAt)),
-  )
+  const durations = settled.flatMap(run => Option.toArray(duration(run)))
 
   const judged = settled.filter(
     run => run.status === "success" || run.status === "failure",
@@ -110,7 +108,3 @@ export const runStats = (runs: ReadonlyArray<Run>): RunStats => {
           ),
   }
 }
-
-/** What a run row shows in its TIME column: live while active, total once settled. */
-export const runTime = (run: Run, now: Date) =>
-  elapsed(run, isActive(run.status) ? now : (run.finishedAt ?? now))

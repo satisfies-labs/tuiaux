@@ -1,4 +1,4 @@
-import { isActive } from "../../domain"
+import { elapsed, isActive } from "../../domain"
 import { type RepoEntry, RepoHealth } from "../../monitor"
 import {
   Panel,
@@ -11,7 +11,7 @@ import {
   useTheme,
   visibleWindow,
 } from "../../ui"
-import { type ProviderGroup, runTime } from "./model"
+import type { ProviderGroup } from "./model"
 
 type Row =
   | { readonly kind: "header"; readonly label: string }
@@ -42,7 +42,7 @@ const RepoRow = ({
 
   const time =
     latest !== undefined && isActive(latest.status)
-      ? formatDuration(runTime(latest, now))
+      ? formatDuration(elapsed(latest, now))
       : formatAge(latest?.createdAt, now)
 
   // Marker, dot and three separating spaces around path, branch and time.
