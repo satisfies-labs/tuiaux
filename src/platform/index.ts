@@ -8,6 +8,8 @@ export * from "./git"
 
 export * from "./history"
 
+export * from "./http"
+
 export * from "./logger"
 
 export * from "./paths"
