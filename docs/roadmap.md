@@ -15,7 +15,7 @@
 - [ ] Try it against a real GitLab project with `glab`, including a token kept in the system keyring
 - [ ] Verify built-in theme colors against each theme's official repo
 - [ ] README GIF (VHS tape in `docs/demo.tape`)
-- [ ] First release: binaries + npm
+- [ ] First release: binaries
 
 ## v1.1
 

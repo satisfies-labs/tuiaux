@@ -237,4 +237,4 @@ XDG variables are honoured. Tokens are never written anywhere.
 
 ## Distribution
 
-`bun build --compile` standalone binaries per OS/arch (built natively on each OS in CI). npm wrapper / Homebrew later.
+`bun build --compile` standalone binaries per OS/arch (built natively on each OS in CI). No npm package. Homebrew, `.deb`/`.rpm` and a Nix flake later, all built from those binaries.

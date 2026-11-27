@@ -10,7 +10,6 @@ GitHub Actions and GitLab CI in one keyboard-driven TUI, built with <a href="htt
 
 <p align="center">
   <a href="https://github.com/satisfies-labs/tuiaux/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/satisfies-labs/tuiaux/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://www.npmjs.com/package/tuiaux"><img alt="npm" src="https://img.shields.io/npm/v/tuiaux"></a>
   <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-34D399"></a>
 </p>
 
@@ -27,9 +26,6 @@ GitHub Actions and GitLab CI in one keyboard-driven TUI, built with <a href="htt
 ## Install
 
 ```sh
-# npm (requires Bun ≥ 1.3)
-bunx tuiaux
-
 # standalone binary (Linux / macOS, x64 / arm64)
 curl -fsSL https://github.com/satisfies-labs/tuiaux/releases/latest/download/tuiaux-$(uname -s | tr A-Z a-z)-$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/').tar.gz | tar -xz
 ./tuiaux --version

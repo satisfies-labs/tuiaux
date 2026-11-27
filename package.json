@@ -1,6 +1,7 @@
 {
   "name": "tuiaux",
   "version": "0.0.0",
+  "private": true,
   "description": "Your CI pipelines, live in your terminal. A TUI for GitHub Actions and GitLab CI, built with OpenTUI.",
   "keywords": [
     "tui",
@@ -27,14 +28,6 @@
     "url": "https://github.com/satisfies-labs/tuiaux/issues"
   },
   "type": "module",
-  "bin": {
-    "tuiaux": "dist/cli.js"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "engines": {
     "bun": ">=1.3.0"
   },
@@ -44,15 +37,13 @@
   ],
   "scripts": {
     "dev": "bun run src/main.ts",
-    "build": "bun build src/main.ts --target bun --packages external --outfile dist/cli.js --minify",
     "compile": "bun run scripts/compile.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "prepare": "effect-tsgo patch --no-typescript --oxlint",
     "lint": "oxlint src tests scripts && effect-tsgo patch --no-typescript --oxlint && oxlint --config .oxlintrc.effect.json --deny-warnings src tests scripts && oxfmt --check",
     "format": "oxfmt",
-    "check": "bun run lint && bun run typecheck && bun run test",
-    "prepublishOnly": "bun run check && bun run build"
+    "check": "bun run lint && bun run typecheck && bun run test"
   },
   "dependencies": {
     "@effect/atom-react": "4.1.7",

@@ -29,7 +29,7 @@ bun run dev          # the TUI, in the current repo (needs `gh` or `glab` logged
 
 ## Commits & releases
 
-[Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, with an optional scope (`feat(gitlab): …`). [release-please](https://github.com/googleapis/release-please) turns them into the changelog, versions and GitHub releases; the release workflow then builds the binaries and publishes to npm.
+[Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`, with an optional scope (`feat(gitlab): …`). [release-please](https://github.com/googleapis/release-please) turns them into the changelog, versions and GitHub releases; the same workflow (`.github/workflows/release.yml`) then builds the binaries and attaches them to the release.
 
 ## Adding a provider
 
