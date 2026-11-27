@@ -19,7 +19,7 @@ Vocabulary: see [`GLOSSARY.md`](../GLOSSARY.md). Decisions and their reasons: [`
 src/
   main.ts            entry: --help/--version, builds the app layer, runs the program (only place using Bun APIs)
   domain/            Run, Job, Step, Status, Tone, refs, branded ids, ProviderError — Schema, pure, no I/O
-  platform/          AppConfig, Logger(file), HttpLive (+ETag), Git, RepoHistory, RunCache, Notifier, Opener, Theme
+  platform/          AppConfig, Logger(file), HttpLive (+ETag), Git, RepoHistory, RunCache, Notifier, Opener
   providers/
     provider.ts      Provider + ProviderModule contracts, Capabilities
     registry.ts      `providers = { github, gitlab }` + the `Providers` service (lookup by kind, matchRemote)
@@ -29,11 +29,11 @@ src/
     gitlab/          same shape
   monitor/           state.ts (immutable MonitorState/RepoEntry: policy + transitions) · poll.ts (generic poll loop) · repos.ts (startup repo set) · monitor.ts (service)
   features/
-    app/             root component, view routing, global keys, status line, dialogs
-    dashboard/       atoms.ts · Dashboard.tsx · keys.ts
+    app/             app.tsx (Root, App: view routing, global keys) · header · status-line · config-issues
+    dashboard/       dashboard.tsx · atoms.ts · keys.ts
     run-detail/
     watch/
-  ui/                shared components (StatusDot, Panel, KeyHints, ProgressBar, Dialog) + theme hook
+  ui/                app-context (AppHandle: state atom, commands, quit) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · text (fit)
 tests/               mirrors src/; fixtures/<provider>/*.json (hand-written); fakes/ (fake Http, fake CLI spawner, …); support/ (Effect test helpers, builders)
 ```
 
@@ -47,7 +47,8 @@ features ──► ui ──► monitor ──► providers ──► platform �
 
 - `domain` imports only `effect`. No I/O.
 - `providers/<x>` never imports another provider, `monitor` or `features`.
-- `features/<x>` never imports another feature (shared pieces go to `ui/` or `features/app`).
+- `features/<x>` never imports another feature, except `features/app`, which routes the views (shared pieces go to `ui/`).
+- File names are kebab-case, React components included (`status-dot.tsx`).
 - UI code never calls a provider or HTTP: it reads atoms and calls `Monitor` commands.
 - `Bun.*` is used only in `main.ts`. Everything else goes through Effect platform services (`FileSystem`, `Path`, child processes), so tests can swap them.
 
@@ -58,7 +59,7 @@ features ──► ui ──► monitor ──► providers ──► platform �
 1. Parse `--help` / `--version`.
 2. Build the app `Layer`: config, logger, git, history, cache, providers, `Monitor`. Genuine startup failures happen here, **before** the terminal is touched.
 3. Acquire the renderer as a scoped resource: `acquireRelease(createCliRenderer({ exitOnCtrlC: false }), destroy)`.
-4. Mount React with an atom runtime built from **the already-built services** (one `Monitor` instance shared by the program and the UI).
+4. Mount React (`Root`) with an `AppHandle` made from **the already-built services**: `Atom.subscriptionRef(monitor.state)` for reading, Monitor commands run with `Effect.runForkWith(appContext)` so they keep the file logger. One `Monitor` instance is shared by the program and the UI.
 5. Wait on a `quit` Deferred (`q`, `Ctrl-C`, SIGTERM).
 6. Closing the scope interrupts every fiber, destroys the renderer and restores the terminal.
 
