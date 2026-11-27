@@ -17,6 +17,8 @@ export interface AppHandle {
   readonly run: (
     command: (monitor: Monitor["Service"]) => Effect.Effect<void>,
   ) => void
+  /** Opens a web page in the browser. */
+  readonly open: (url: string) => void
   readonly quit: () => void
 }
 

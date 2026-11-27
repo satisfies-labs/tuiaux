@@ -30,10 +30,10 @@ src/
   monitor/           state.ts (immutable MonitorState/RepoEntry: policy + transitions) · poll.ts (generic poll loop) · repos.ts (startup repo set) · monitor.ts (service)
   features/
     app/             app.tsx (Root, App: view routing, global keys) · header · status-line · config-issues
-    dashboard/       dashboard.tsx · atoms.ts · keys.ts
+    dashboard/       model.ts (selection atoms, grouping, stats) · dashboard.tsx (layout, keys, focus) · repo-list · runs-table · jobs-panel
     run-detail/
     watch/
-  ui/                app-context (AppHandle: state atom, commands, quit) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · text (fit)
+  ui/                app-context (AppHandle: state atom, commands, open, quit) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · format (durations, ages) · text (fit, plural) · window (scrolling) · hooks (useNow)
 tests/               mirrors src/; fixtures/<provider>/*.json (hand-written); fakes/ (fake Http, fake CLI spawner, …); support/ (Effect test helpers, builders)
 ```
 
@@ -77,7 +77,7 @@ Defects (bugs) are caught at the top: restore the terminal, print one line with 
 | `RepoHistory` | Remembered repos in `~/.local/state/tuiaux/repos.json` (versioned): `RepoRef`, local path, last seen, last branch. Each change re-reads the file (two processes don't erase each other), writes are atomic (tmp + rename), a corrupt file is moved aside. `list` / `remember` / `forget`; never fails. |
 | `RunCache` | Last known runs per repo in `~/.cache/tuiaux/runs/<encoded key>.json` (versioned), used to draw cold repos instantly. Missing/outdated/corrupt → None. Never fails. |
 | `Notifier` | Bell / OSC 9 / OS notification on `RunSettled`, filtered by config. |
-| `Opener` | Opens URLs in the browser. |
+| `Opener` | Opens web pages with `open` (macOS) / `xdg-open`; only `https://` URLs, since they come from CI APIs. Never fails: problems are logged. |
 
 ## Providers
 

@@ -16,6 +16,7 @@ import {
   FileLogger,
   Git,
   HttpLive,
+  Opener,
   Paths,
   RepoHistory,
   RunCache,
@@ -40,6 +41,7 @@ const appLayer = (cwd: string) =>
         RepoHistory.layer,
         RunCache.layer,
         HttpLive,
+        Opener.layer,
       ),
     ),
     Layer.provideMerge(FileLogger),
@@ -51,7 +53,8 @@ const appLayer = (cwd: string) =>
 const tui = Effect.gen(function* () {
   const { config, issues, path: configPath } = yield* AppConfig
   const monitor = yield* Monitor
-  const runInApp = Effect.runForkWith(yield* Effect.context<Monitor>())
+  const opener = yield* Opener
+  const runInApp = Effect.runForkWith(yield* Effect.context<Monitor | Opener>())
   const quit = yield* Deferred.make<void>()
 
   const renderer = yield* Effect.acquireRelease(
@@ -86,6 +89,7 @@ const tui = Effect.gen(function* () {
         configPath,
         configIssues: [...issues, ...Option.toArray(theme.issue)],
         run: command => void runInApp(command(monitor)),
+        open: url => void runInApp(opener.open(url)),
         quit: () => Effect.runSync(Deferred.succeed(quit, undefined)),
       },
     }),

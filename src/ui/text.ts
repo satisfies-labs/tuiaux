@@ -6,3 +6,7 @@ export const fit = (text: string, width: number): string =>
   text.length > width
     ? `${text.slice(0, Math.max(0, width - 1))}…`
     : text.padEnd(width)
+
+/** `1 repo`, `3 repos`. */
+export const plural = (count: number, noun: string): string =>
+  `${count} ${noun}${count === 1 ? "" : "s"}`

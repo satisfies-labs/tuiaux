@@ -12,25 +12,36 @@ import {
   useMonitorState,
   useTheme,
 } from "../../ui"
-import { Dashboard } from "../dashboard/dashboard"
+import { DASHBOARD_HINTS, Dashboard } from "../dashboard/dashboard"
 import { ConfigIssues } from "./config-issues"
 import { Header } from "./header"
+import { Help } from "./help"
 import { StatusLine } from "./status-line"
 
-const configIssuesOpen = Atom.make(true)
+/** At most one dialog at a time; config issues open first, when there are any. */
+const overlayAtom = Atom.make<"issues" | "help" | undefined>("issues")
 
 export const App = () => {
   const app = useApp()
   const theme = useTheme()
   const state = useMonitorState()
-  const [issuesOpen, setIssuesOpen] = useAtom(configIssuesOpen)
-  const showIssues = issuesOpen && app.configIssues.length > 0
+  const [opened, setOverlay] = useAtom(overlayAtom)
+
+  const overlay =
+    opened === "issues" && app.configIssues.length === 0 ? undefined : opened
 
   useKeyboard(key => {
-    if (key.name === "q" || (key.ctrl && key.name === "c")) app.quit()
-    else if (showIssues) {
-      if (key.name === "escape" || key.name === "return") setIssuesOpen(false)
-    } else if (key.name === "r") app.run(monitor => monitor.refresh)
+    if (key.name === "q" || (key.ctrl && key.name === "c")) return app.quit()
+
+    if (overlay !== undefined) {
+      if (["escape", "return"].includes(key.name) || key.sequence === "?")
+        setOverlay(undefined)
+
+      return
+    }
+
+    if (key.sequence === "?") setOverlay("help")
+    else if (key.name === "r") app.run(monitor => monitor.refresh)
   })
 
   return (
@@ -41,13 +52,12 @@ export const App = () => {
       backgroundColor={theme.bg}
     >
       <Header version={app.version} />
-      <box flexGrow={1} flexDirection="column" paddingX={1} paddingY={1}>
-        <Dashboard state={state} />
-      </box>
-      <StatusLine issues={state.hostIssues} />
-      {showIssues && (
+      <Dashboard state={state} active={overlay === undefined} />
+      <StatusLine issues={state.hostIssues} hints={DASHBOARD_HINTS} />
+      {overlay === "issues" && (
         <ConfigIssues path={app.configPath} issues={app.configIssues} />
       )}
+      {overlay === "help" && <Help hints={DASHBOARD_HINTS} />}
     </box>
   )
 }
