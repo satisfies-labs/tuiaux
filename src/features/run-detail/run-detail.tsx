@@ -24,6 +24,7 @@ import { StepsPanel } from "./steps-panel"
 export const RUN_DETAIL_HINTS: ReadonlyArray<Hint> = [
   ["↑↓", "job"],
   ["o", "open"],
+  ["w", "watch"],
   ["esc", "back"],
   ["r", "refresh"],
   ["?", "help"],
@@ -116,6 +117,8 @@ export const RunDetail = ({
             -1,
           ),
         )
+      case "w":
+        return setView(View.Watch({ run: target }))
       case "o": {
         const url = job?.url ?? run?.url
 

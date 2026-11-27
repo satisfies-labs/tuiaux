@@ -1,6 +1,6 @@
 import { Equal, Match } from "effect"
 
-import { type Job, type Run, elapsed } from "../../domain"
+import { type Job, type Run, completion, elapsed } from "../../domain"
 import type { FocusedRun } from "../../monitor"
 import {
   Panel,
@@ -16,13 +16,6 @@ import {
 const NAME = 20
 const LABEL = 8
 const TIME = 6
-
-const progressOf = (job: Job): number =>
-  Match.value(job.status).pipe(
-    Match.when("running", () => job.progress ?? 0),
-    Match.whenOr("success", "failure", () => 1),
-    Match.orElse(() => 0),
-  )
 
 const labelOf = (job: Job): string =>
   Match.value(job.status).pipe(
@@ -51,7 +44,7 @@ const JobRow = ({
     <text wrapMode="none">
       <StatusDot status={job.status} />
       <span fg={theme.text}>{` ${fit(name, NAME)} `}</span>
-      <ProgressBar value={progressOf(job)} width={bar} status={job.status} />
+      <ProgressBar value={completion(job)} width={bar} status={job.status} />
       <span fg={theme.muted}>{` ${fit(labelOf(job), LABEL)}`}</span>
       <span fg={theme.muted}>
         {formatDuration(elapsed(job, now)).padStart(TIME)}

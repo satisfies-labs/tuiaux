@@ -31,6 +31,7 @@ export const DASHBOARD_HINTS: ReadonlyArray<Hint> = [
   ["↑↓", "move"],
   ["tab", "panel"],
   ["⏎", "details"],
+  ["w", "watch"],
   ["o", "open"],
   ["d", "forget"],
   ["r", "refresh"],
@@ -175,6 +176,10 @@ export const Dashboard = ({
         return setSelection({ ...selection, panel: "repos" })
       case "return":
         if (run !== undefined) setView(View.RunDetail({ run: run.ref }))
+
+        return
+      case "w":
+        if (run !== undefined) setView(View.Watch({ run: run.ref }))
 
         return
       case "o":

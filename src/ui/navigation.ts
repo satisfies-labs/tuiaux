@@ -7,6 +7,7 @@ import type { RunRef } from "../domain"
 export type View = Data.TaggedEnum<{
   Dashboard: {}
   RunDetail: { readonly run: RunRef }
+  Watch: { readonly run: RunRef }
 }>
 
 export const View = Data.taggedEnum<View>()

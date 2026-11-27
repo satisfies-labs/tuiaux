@@ -19,7 +19,7 @@ Vocabulary: see [`GLOSSARY.md`](../GLOSSARY.md). Decisions and their reasons: [`
 src/
   main.ts            entry: --help/--version, builds the app layer, runs the program (only place using Bun APIs)
   domain/            Run, Job, Step, Status, Tone, refs, branded ids, ProviderError — Schema, pure, no I/O
-  platform/          AppConfig, Logger(file), HttpLive (+ETag), Git, RepoHistory, RunCache, Notifier, Opener
+  platform/          AppConfig, Logger(file), HttpLive (+ETag), Git, RepoHistory, RunCache, Opener
   providers/
     provider.ts      Provider + ProviderModule contracts, Capabilities
     registry.ts      `providers = { github, gitlab }` + the `Providers` service (lookup by kind, matchRemote)
@@ -27,13 +27,13 @@ src/
     rest.ts          shared REST client: auth, status → ProviderError, Schema decode; driven by a `RestSpec`
     github/          api.ts (payload schemas) · map.ts (pure) · index.ts (module: RestSpec + mapping)
     gitlab/          same shape
-  monitor/           state.ts (immutable MonitorState/RepoEntry: policy + transitions) · poll.ts (generic poll loop) · repos.ts (startup repo set) · monitor.ts (service)
+  monitor/           state.ts (immutable MonitorState/RepoEntry: policy + transitions) · poll.ts (generic poll loop) · repos.ts (startup repo set) · notification.ts (settled run → notification) · monitor.ts (service)
   features/
     app/             app.tsx (Root, App: view routing, global keys) · header · status-line · config-issues
     dashboard/       model.ts (selection atoms, grouping, stats) · dashboard.tsx (layout, keys, focus) · repo-list · runs-table · jobs-panel
     run-detail/      model.ts (job selection, default job) · run-detail.tsx (breadcrumb, keys) · job-list · steps-panel
-    watch/
-  ui/                app-context (AppHandle: state atom, commands, open, quit) · navigation (View: Dashboard | RunDetail, viewAtom) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · format (durations, ages) · text (fit, plural) · window (scrolling) · hooks (useNow)
+    watch/           watch.tsx (one run: status, overall progress, a dot per job; `w` from dashboard or detail)
+  ui/                app-context (AppHandle: state atom, commands, open, quit) · navigation (View: Dashboard | RunDetail | Watch, viewAtom) · alert (bell, OSC 9, OpenTUI notification) · theme/ (palettes, resolve, useTheme) · components/ · describe (errors → text) · format (durations, ages) · text (fit, plural) · window (scrolling) · hooks (useNow)
 tests/               mirrors src/; fixtures/<provider>/*.json (hand-written); fakes/ (fake Http, fake CLI spawner, …); support/ (Effect test helpers, builders)
 ```
 
@@ -76,7 +76,7 @@ Defects (bugs) are caught at the top: restore the terminal, print one line with 
 | `Git` | `detect(cwd)` → root, current branch (None when detached), fetch remotes (`origin`, `upstream`, then others). Uses the git CLI with `GIT_OPTIONAL_LOCKS=0`. `parseGitUrl` (pure, drops credentials) is what providers' `matchRemote` build on; matching a remote to a provider happens in `providers`. |
 | `RepoHistory` | Remembered repos in `~/.local/state/tuiaux/repos.json` (versioned): `RepoRef`, local path, last seen, last branch. Each change re-reads the file (two processes don't erase each other), writes are atomic (tmp + rename), a corrupt file is moved aside. `list` / `remember` / `forget`; never fails. |
 | `RunCache` | Last known runs per repo in `~/.cache/tuiaux/runs/<encoded key>.json` (versioned), used to draw cold repos instantly. Missing/outdated/corrupt → None. Never fails. |
-| `Notifier` | Bell / OSC 9 / OS notification on `RunSettled`, filtered by config. |
+| Notifications | Not a service: `main.ts` subscribes to `Monitor.settled`, keeps what `notificationFor` (pure, `monitor/notification.ts`) wants per `notifications.on` (failure · recovered · success), and calls `ui/alert`: waits for `renderer.idle()`, then OpenTUI's notification (kitty, OSC 99) or OSC 9, then the bell. Text from CI APIs is stripped of control characters before it goes into a sequence. |
 | `Opener` | Opens web pages with `open` (macOS) / `xdg-open`; only `https://` URLs, since they come from CI APIs. Never fails: problems are logged. |
 
 ## Providers

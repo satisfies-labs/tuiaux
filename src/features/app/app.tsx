@@ -16,6 +16,7 @@ import {
 } from "../../ui"
 import { DASHBOARD_HINTS, Dashboard } from "../dashboard/dashboard"
 import { RUN_DETAIL_HINTS, RunDetail } from "../run-detail/run-detail"
+import { WATCH_HINTS, Watch } from "../watch/watch"
 import { ConfigIssues } from "./config-issues"
 import { Header } from "./header"
 import { Help } from "./help"
@@ -37,6 +38,7 @@ export const App = () => {
   const hints = View.$match(view, {
     Dashboard: () => DASHBOARD_HINTS,
     RunDetail: () => RUN_DETAIL_HINTS,
+    Watch: () => WATCH_HINTS,
   })
 
   useKeyboard(key => {
@@ -71,6 +73,9 @@ export const App = () => {
             target={run}
             active={overlay === undefined}
           />
+        ),
+        Watch: ({ run }) => (
+          <Watch state={state} target={run} active={overlay === undefined} />
         ),
       })}
       <StatusLine issues={state.hostIssues} hints={hints} />

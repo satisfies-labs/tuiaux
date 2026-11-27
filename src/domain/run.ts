@@ -1,4 +1,4 @@
-import { Duration, Option, Schema } from "effect"
+import { Duration, Match, Option, Schema } from "effect"
 
 import { JobRef, RunRef } from "./refs"
 import { Status, isActive } from "./status"
@@ -84,3 +84,11 @@ export const hasSettled = (previous: Run | undefined, current: Run): boolean =>
   previous !== undefined &&
   isActive(previous.status) &&
   !isActive(current.status)
+
+/** How far along a job is, 0..1: done once settled, its reported progress while running. */
+export const completion = (job: Job): number =>
+  Match.value(job.status).pipe(
+    Match.when("running", () => job.progress ?? 0),
+    Match.when("queued", () => 0),
+    Match.orElse(() => 1),
+  )
