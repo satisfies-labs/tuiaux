@@ -1,5 +1,5 @@
 import { describe, expect } from "bun:test"
-import { Effect, Option } from "effect"
+import { Effect, Option, type Schema } from "effect"
 
 import {
   AuthMissing,
@@ -41,11 +41,26 @@ const withGitHub = <A, E>(
   gh: FakeBinary = LOGGED_IN,
 ) => withProvider(GitHub, "gh", route, use, gh)
 
+/** The runs page, and a 30 s timing for every settled run. */
+const api =
+  (
+    timing: FakeReply = { status: 200, body: { run_duration_ms: 30_000 } },
+    runs: Schema.Json = runsPayload,
+  ) =>
+  (request: SentRequest): FakeReply =>
+    request.url.endsWith("/timing") ? timing : { status: 200, body: runs }
+
+const runsCalls = (sent: ReadonlyArray<SentRequest>) =>
+  sent.filter(request => request.url.endsWith("/actions/runs"))
+
+const timingCalls = (sent: ReadonlyArray<SentRequest>) =>
+  sent.filter(request => request.url.endsWith("/timing"))
+
 describe("listRuns", () => {
   it.effect(
     "maps runs, newest first",
     () =>
-      withGitHub(always({ status: 200, body: runsPayload }), github =>
+      withGitHub(api(), github =>
         Effect.gen(function* () {
           const [running, timedOut] = yield* github.listRuns(repo, OPTS)
 
@@ -65,25 +80,22 @@ describe("listRuns", () => {
           expect(timedOut).toMatchObject({
             status: "failure",
             commitMessage: "wip: works grid",
-            finishedAt: new Date("2026-11-26T18:00:50Z"),
           })
         }),
       ).effect,
   )
 
   it.effect("asks for the repo's runs with the token, limit and branch", () => {
-    const setup = withGitHub(
-      always({ status: 200, body: runsPayload }),
-      github =>
-        Effect.gen(function* () {
-          yield* github.listRuns(repo, { branch: "feat/x", limit: 5 })
-          yield* github.listRuns(repo, OPTS)
-        }),
+    const setup = withGitHub(api(), github =>
+      Effect.gen(function* () {
+        yield* github.listRuns(repo, { branch: "feat/x", limit: 5 })
+        yield* github.listRuns(repo, OPTS)
+      }),
     )
 
     return setup.effect.pipe(
       Effect.map(() => {
-        const [first, second] = setup.http.sent
+        const [first, second] = runsCalls(setup.http.sent)
 
         expect(first?.url).toBe(
           "https://api.github.com/repos/satisfies-labs/tuiaux/actions/runs",
@@ -95,6 +107,91 @@ describe("listRuns", () => {
       }),
     )
   })
+})
+
+describe("durations", () => {
+  it.effect(
+    "a settled run ends at its start plus its timing, never at updated_at",
+    () =>
+      withGitHub(api(), github =>
+        Effect.gen(function* () {
+          const [, timedOut] = yield* github.listRuns(repo, OPTS)
+
+          // started 18:00:02, timing 30 s; the fixture's updated_at (18:00:50) is ignored.
+          expect(timedOut?.finishedAt).toEqual(new Date("2026-11-26T18:00:32Z"))
+        }),
+      ).effect,
+  )
+
+  it.effect(
+    "asks for a settled run's timing once, only for settled runs",
+    () => {
+      const setup = withGitHub(api(), github =>
+        Effect.gen(function* () {
+          yield* github.listRuns(repo, OPTS)
+          yield* github.listRuns(repo, OPTS)
+        }),
+      )
+
+      return setup.effect.pipe(
+        Effect.map(() => {
+          expect(
+            timingCalls(setup.http.sent).map(request => request.url),
+          ).toEqual([
+            "https://api.github.com/repos/satisfies-labs/tuiaux/actions/runs/1000/timing",
+          ])
+        }),
+      )
+    },
+  )
+
+  it.effect("a re-run (new updated_at) is timed again", () => {
+    const rerun = {
+      workflow_runs: runsPayload.workflow_runs.map(run => ({
+        ...run,
+        updated_at: "2026-11-27T09:00:00Z",
+      })),
+    }
+
+    let calls = 0
+
+    const route = (request: SentRequest): FakeReply =>
+      request.url.endsWith("/timing")
+        ? { status: 200, body: { run_duration_ms: 30_000 } }
+        : { status: 200, body: calls++ === 0 ? runsPayload : rerun }
+
+    const setup = withGitHub(route, github =>
+      Effect.gen(function* () {
+        yield* github.listRuns(repo, OPTS)
+        yield* github.listRuns(repo, OPTS)
+      }),
+    )
+
+    return setup.effect.pipe(
+      Effect.map(() => expect(timingCalls(setup.http.sent)).toHaveLength(2)),
+    )
+  })
+
+  it.effect(
+    "a rate limit on a timing fails the listing, so the host gets paused",
+    () =>
+      withGitHub(
+        api({ status: 429, headers: { "retry-after": "60" } }),
+        github => Effect.flip(github.listRuns(repo, OPTS)),
+      ).effect.pipe(Effect.map(failsWith(RateLimited, { host: "github.com" }))),
+  )
+
+  it.effect(
+    "without a timing, the run still lists, with no duration",
+    () =>
+      withGitHub(api({ status: 500 }), github =>
+        Effect.gen(function* () {
+          const [, timedOut] = yield* github.listRuns(repo, OPTS)
+
+          expect(timedOut?.finishedAt).toBeUndefined()
+        }),
+      ).effect,
+  )
 })
 
 describe("listJobs", () => {

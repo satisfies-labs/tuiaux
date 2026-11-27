@@ -57,3 +57,8 @@ export const GhRunsPage = Schema.Struct({ workflow_runs: Schema.Array(GhRun) })
 
 /** `GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` */
 export const GhJobsPage = Schema.Struct({ jobs: Schema.Array(GhJob) })
+
+/** `GET /repos/{owner}/{repo}/actions/runs/{run_id}/timing`: the real duration, absent while it runs. */
+export const GhRunTiming = Schema.Struct({
+  run_duration_ms: Schema.optionalKey(Schema.Int),
+})

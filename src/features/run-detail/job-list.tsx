@@ -2,9 +2,9 @@ import { type Job, elapsed } from "../../domain"
 import {
   Panel,
   StatusDot,
-  fit,
   formatDuration,
   plural,
+  useText,
   useTheme,
   visibleWindow,
 } from "../../ui"
@@ -26,6 +26,7 @@ export const JobList = ({
   readonly now: Date
 }) => {
   const theme = useTheme()
+  const { fit } = useText()
   const cursor = jobs.findIndex(job => job.ref.id === selected?.ref.id)
   const { start, end } = visibleWindow(jobs.length, cursor, height - 2)
   // Marker, dot, the space after it and the time column.

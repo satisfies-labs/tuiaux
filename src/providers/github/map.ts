@@ -55,23 +55,33 @@ const firstLine = (text: string | undefined): string | undefined => {
   return line === "" ? undefined : line
 }
 
-export const mapRun = (repo: RepoRef, payload: GhRun): Run => {
-  const status = ghStatus(payload.status, payload.conclusion)
+/**
+ * `durationMs` comes from the run's timing: the list itself has no end time, and its `updated_at`
+ * moves whenever GitHub touches the record, long after the run ended.
+ */
+export const mapRun = (
+  repo: RepoRef,
+  payload: GhRun,
+  durationMs: number | undefined,
+): Run => {
+  const startedAt = payload.run_started_at ?? undefined
 
   return new Run({
     ref: new RunRef({ repo, id: RunId.make(String(payload.id)) }),
     workflow: payload.name ?? "workflow",
     number: payload.run_number,
-    status,
+    status: ghStatus(payload.status, payload.conclusion),
     branch: payload.head_branch ?? "",
     commitSha: payload.head_sha,
     commitMessage: firstLine(payload.display_title),
     event: payload.event,
     actor: payload.actor?.login,
     createdAt: payload.created_at,
-    startedAt: payload.run_started_at ?? undefined,
-    // The list has no completion time; `updated_at` is when it settled.
-    finishedAt: payload.status === "completed" ? payload.updated_at : undefined,
+    startedAt,
+    finishedAt:
+      startedAt === undefined || durationMs === undefined
+        ? undefined
+        : new Date(startedAt.getTime() + durationMs),
     url: payload.html_url,
   })
 }

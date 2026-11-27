@@ -1,6 +1,7 @@
 import { Effect, Layer, Option, type Schema } from "effect"
 import {
   Headers,
+  HttpBody,
   HttpClient,
   HttpClientError,
   type HttpClientRequest,
@@ -20,13 +21,23 @@ export type FakeReply =
 
 /** What a request looked like, in plain values for assertions. */
 export interface SentRequest {
+  readonly method: string
   readonly url: string
+  /** The JSON body, for POSTs. */
+  readonly body: Schema.Json | undefined
   readonly params: Readonly<Record<string, string>>
   readonly header: (name: string) => string | undefined
 }
 
+const jsonBody = (body: HttpBody.HttpBody): Schema.Json | undefined =>
+  body instanceof HttpBody.Uint8Array
+    ? JSON.parse(new TextDecoder().decode(body.body))
+    : undefined
+
 const toSent = (request: HttpClientRequest.HttpClientRequest): SentRequest => ({
+  method: request.method,
   url: request.url,
+  body: jsonBody(request.body),
   params: Object.fromEntries(
     new URLSearchParams(UrlParams.toString(request.urlParams)),
   ),

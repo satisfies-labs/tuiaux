@@ -74,6 +74,16 @@ describe("layout", () => {
   })
 })
 
+test("a repo without runs says where its CI configuration lives", async () => {
+  const app = await renderApp(
+    stateOf({ repos: [entry({ repo: UI, current: true, runs: [] })] }),
+  )
+
+  expect(app.frame()).toContain(
+    "GitLab CI runs the pipeline defined in .gitlab-ci.yml",
+  )
+})
+
 describe("navigation", () => {
   test("focuses the selected repo and run in the Monitor", async () => {
     const app = await renderApp(state)

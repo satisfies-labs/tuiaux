@@ -8,6 +8,7 @@
 - [x] Dashboard, run detail and watch views; built-in themes; config issues shown at startup
 - [x] Notifications on settled runs: bell, OSC 9, OpenTUI's notification on kitty
 - [x] Contextual help (`?`): the keys of the current view
+- [x] Real run durations (GitHub timing, GitLab pipeline detail) and GitLab commit titles, fetched once and cached
 
 ## Before the first release
 
@@ -20,7 +21,6 @@
 
 - [ ] Job logs in the run detail (GitHub `/actions/jobs/{id}/logs`, GitLab `/jobs/{id}/trace`), follow mode, jump to the error
 - [ ] Rerun / cancel (with confirmation), exposed through provider `capabilities`
-- [ ] GitLab commit titles (cached per sha)
 - [ ] User theme files in `~/.config/tuiaux/themes/*.toml`
 - [ ] Repo list filtering (`/`)
 

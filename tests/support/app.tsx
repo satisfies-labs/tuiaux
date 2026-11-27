@@ -14,7 +14,7 @@ import {
   RepoHealth,
 } from "../../src/monitor"
 import type { ConfigIssue } from "../../src/platform"
-import { resolveTheme } from "../../src/ui"
+import { resolveTheme, textMeasure } from "../../src/ui"
 import { repo, run } from "./domain"
 
 type Setup = Awaited<ReturnType<typeof testRender>>
@@ -80,6 +80,7 @@ export const renderApp = async (
   const setup = await testRender(
     <Root
       theme={resolveTheme("tuiaux-dark", {}, undefined)}
+      text={textMeasure("unicode")}
       app={{
         version: "1.2.3",
         state: Atom.subscriptionRef(ref),

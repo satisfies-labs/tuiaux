@@ -1,11 +1,11 @@
 import { Effect, Option } from "effect"
 import { Headers } from "effect/http"
 
-import { RepoRef } from "../../domain"
+import { RepoRef, RunId, RunRef } from "../../domain"
 import { parseGitUrl } from "../../platform"
 import type { Provider, ProviderModule } from "../provider"
-import { restClient } from "../rest"
-import { GhJobsPage, GhRunsPage } from "./api"
+import { RunRevision, cachedLookup, restClient } from "../rest"
+import { GhJobsPage, GhRunTiming, GhRunsPage } from "./api"
 import { mapJob, mapRun } from "./map"
 
 const HOST = "github.com"
@@ -55,6 +55,15 @@ export const GitHub: ProviderModule = {
         "The token can't read Actions here: run `gh auth refresh -s repo`.",
     })
 
+    const timing = yield* cachedLookup(({ run }: RunRevision) =>
+      rest.get(
+        GhRunTiming,
+        `/repos/${repoPath(run.repo)}/actions/runs/${encodeURIComponent(run.id)}/timing`,
+        {},
+        { repo: run.repo, resource: "run" },
+      ),
+    )
+
     return {
       kind: "github",
       capabilities: { rerun: false, cancel: false, logs: "none" },
@@ -68,8 +77,31 @@ export const GitHub: ProviderModule = {
             { repo, resource: "repo" },
           )
           .pipe(
-            Effect.map(page =>
-              page.workflow_runs.map(run => mapRun(repo, run)),
+            Effect.flatMap(page =>
+              Effect.forEach(
+                page.workflow_runs,
+                run =>
+                  run.status === "completed"
+                    ? timing(
+                        new RunRevision({
+                          run: new RunRef({
+                            repo,
+                            id: RunId.make(String(run.id)),
+                          }),
+                          updatedAt: run.updated_at.getTime(),
+                        }),
+                      ).pipe(
+                        Effect.map(found =>
+                          mapRun(
+                            repo,
+                            run,
+                            Option.getOrUndefined(found)?.run_duration_ms,
+                          ),
+                        ),
+                      )
+                    : Effect.succeed(mapRun(repo, run, undefined)),
+                { concurrency: 4 },
+              ),
             ),
           ),
 

@@ -60,6 +60,8 @@ export const Foo: ProviderModule = {
 
 What the shared client does with the answer: 2xx → decoded with your schema (bad payload → `Unexpected`), 401/403 → `Unauthorized` (the token is dropped and read again on refresh), 429 or a rate-limit 403 → `RateLimited` until the reset header, 404 → `NotFound`, anything else → `Unexpected` with the error body as cause. No retries: that's the `Monitor`'s job.
 
+Lists rarely carry a run's real end time: `updated_at` moves whenever the host touches the record, long after the run ended. Prefer an API that returns them with the list (GitLab's GraphQL does, in one request). Otherwise ask a settled run's details with `cachedLookup` (from `rest.ts`): once per run revision, cached; a local failure only leaves the duration empty, a rate limit or credentials error still fails the listing so the `Monitor` pauses the host. `rest.post` sends JSON bodies (GraphQL); the ETag cache only applies to GETs.
+
 ## 4. Register it
 
 - Add the kind to `ProviderKind` in `src/domain/refs.ts`.
@@ -83,5 +85,5 @@ README (authentication table), `docs/configuration.md` if anything changes there
 
 |        | Runs                              | Jobs                    | Steps | Token                                 | Notes                                                    |
 | ------ | --------------------------------- | ----------------------- | ----- | ------------------------------------- | -------------------------------------------------------- |
-| GitHub | `GET /repos/{o}/{r}/actions/runs` | `…/runs/{id}/jobs`      | ✓     | `gh auth token --hostname github.com` | `status` + `conclusion` folded; 403 may be a rate limit  |
-| GitLab | `GET /projects/{id}/pipelines`    | `…/pipelines/{id}/jobs` | —     | `glab config get token --host …`      | project path URL-encoded; jobs carry `stage`; no commit title in the list |
+| GitHub | `GET /repos/{o}/{r}/actions/runs` | `…/runs/{id}/jobs`      | ✓     | `gh auth token --hostname github.com` | `status` + `conclusion` folded; 403 may be a rate limit; durations from `…/runs/{id}/timing` |
+| GitLab | GraphQL `project.pipelines` (one request: times, author, commit title) | `GET /v4/projects/{id}/pipelines/{id}/jobs` | —     | `glab config get token --host …`      | gitlab.com's free plan allows ~100 requests a minute per user: keep it to one request per poll; jobs carry `stage` |

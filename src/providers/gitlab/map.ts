@@ -7,7 +7,6 @@ import {
   RunId,
   RunRef,
   type Status,
-  isActive,
 } from "../../domain"
 import type { GlJob, GlPipeline } from "./api"
 
@@ -39,30 +38,26 @@ export const glStatus = (status: string): Status => {
   }
 }
 
-/**
- * The pipeline list has no start/finish times and no commit title (one request per pipeline would be
- * needed). Times are estimated from `created_at` (start) and `updated_at` (when it settled).
- */
-export const mapPipeline = (repo: RepoRef, payload: GlPipeline): Run => {
-  const status = glStatus(payload.status)
-  const started = status !== "queued" && status !== "idle"
+/** The REST id inside a GraphQL global id: `gid://gitlab/Ci::Pipeline/123` → `123`. */
+const restId = (globalId: string) =>
+  globalId.slice(globalId.lastIndexOf("/") + 1)
 
-  return new Run({
-    ref: new RunRef({ repo, id: RunId.make(String(payload.id)) }),
-    workflow: payload.name ?? payload.source,
+export const mapPipeline = (repo: RepoRef, payload: GlPipeline): Run =>
+  new Run({
+    ref: new RunRef({ repo, id: RunId.make(restId(payload.id)) }),
+    workflow: payload.name ?? payload.source ?? "pipeline",
     number: payload.iid,
-    status,
-    branch: payload.ref,
+    status: glStatus(payload.status.toLowerCase()),
+    branch: payload.ref ?? "",
     commitSha: payload.sha,
-    commitMessage: undefined,
-    event: payload.source,
-    actor: undefined,
-    createdAt: payload.created_at,
-    startedAt: started ? payload.created_at : undefined,
-    finishedAt: started && !isActive(status) ? payload.updated_at : undefined,
-    url: payload.web_url,
+    commitMessage: payload.commit?.title,
+    event: payload.source ?? "",
+    actor: payload.user?.username,
+    createdAt: payload.createdAt,
+    startedAt: payload.startedAt ?? undefined,
+    finishedAt: payload.finishedAt ?? undefined,
+    url: `https://${repo.host}${payload.path}`,
   })
-}
 
 /** GitLab jobs have no steps; they're grouped by `stage` instead. */
 export const mapJob = (run: RunRef, payload: GlJob): Job =>

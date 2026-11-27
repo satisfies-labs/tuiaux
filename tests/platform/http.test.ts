@@ -85,3 +85,18 @@ it.effect(
     })
   },
 )
+
+it.effect("a POST is never served from the cache, even to the same URL", () => {
+  const post = HttpClientRequest.post("https://api.example.com/graphql")
+
+  const { sent, client } = cached([
+    { status: 200, body: { query: 1 }, headers: { etag: '"q1"' } },
+    { status: 200, body: { query: 2 }, headers: { etag: '"q2"' } },
+  ])
+
+  return Effect.gen(function* () {
+    yield* client.execute(post)
+    expect(yield* (yield* client.execute(post)).json).toEqual({ query: 2 })
+    expect(sent[1]?.header("if-none-match")).toBeUndefined()
+  })
+})
