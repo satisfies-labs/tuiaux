@@ -46,7 +46,7 @@ test("w opens the watch view: run, overall progress, a dot per job", async () =>
   expect(frame).toContain("portfolio-2026 · CI #412 · main")
   expect(frame).toContain("63%")
   expect(frame).toContain("● install")
-  expect(frame).toContain("◌ test")
+  expect(frame).toMatch(/[◐◓◑◒] test/)
   expect(frame).toContain("○ e2e")
   expect(app.commands.at(-1)).toBe("focusRun 412")
 })

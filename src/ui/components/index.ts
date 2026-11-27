@@ -2,6 +2,8 @@ export * from "./command-palette"
 
 export * from "./dialog"
 
+export * from "./empty-state"
+
 export * from "./key-hints"
 
 export * from "./overlay-host"

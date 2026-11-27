@@ -1,6 +1,7 @@
-import { Equal } from "effect"
+import { Equal, Option } from "effect"
 import { useEffect } from "react"
 
+import { useAtomSet } from "@effect/atom-react"
 import { useTerminalDimensions } from "@opentui/react"
 
 import {
@@ -14,14 +15,17 @@ import {
 import type { MonitorState } from "../../monitor"
 import {
   type Command,
+  EmptyState,
   Panel,
   ProgressBar,
   Screen,
   StatusDot,
+  flashAtom,
   formatDuration,
   useApp,
   useNavigation,
   useNow,
+  useText,
   useTheme,
 } from "../../ui"
 
@@ -44,7 +48,9 @@ export const Watch = ({
   const theme = useTheme()
   const now = useNow()
   const { width } = useTerminalDimensions()
+  const text = useText()
   const { back } = useNavigation()
+  const setFlash = useAtomSet(flashAtom)
 
   const run = state
     .entry(target.repo)
@@ -67,7 +73,10 @@ export const Watch = ({
             group: "Actions",
             keys: ["o"],
             hint: "open",
-            run: () => app.open(run.url),
+            run: () => {
+              app.open(run.url)
+              setFlash("opened in browser")
+            },
           } satisfies Command,
         ]),
     {
@@ -83,27 +92,39 @@ export const Watch = ({
   if (run === undefined)
     return (
       <Screen commands={commands}>
-        <box flexGrow={1} paddingX={1} paddingY={1}>
-          <text fg={theme.muted}>
-            This run isn't in the recent list anymore. Press esc to go back.
-          </text>
-        </box>
+        <EmptyState
+          title="This run isn't in the recent list anymore."
+          lines={["esc goes back."]}
+        />
       </Screen>
     )
 
   const progress = overall(jobs, run)
   const percent = `${Math.round(progress * 100)}%`.padStart(5)
-  // Window padding, panel borders and padding, and the percentage.
-  const bar = Math.max(10, width - 2 - 4 - percent.length - 1)
+  const card = Math.min(64, width - 2)
+  // Panel borders and padding, then the percentage.
+  const bar = Math.max(10, card - 4 - percent.length - 1)
   const name = run.ref.repo.path.split("/").at(-1) ?? run.ref.repo.path
+
+  const label = (job: Job, timed: boolean) => {
+    const time = elapsed(job, now)
+
+    return timed && Option.isSome(time)
+      ? `${job.name} ${formatDuration(time)}`
+      : job.name
+  }
+
+  // Durations after each job when the whole line still fits on the card.
+  const timed =
+    text.width(jobs.map(job => `● ${label(job, true)}  `).join("")) <= card - 4
 
   return (
     <Screen commands={commands}>
-      <box flexGrow={1} paddingX={1} paddingY={1}>
-        <Panel title="watch">
+      <box flexGrow={1} alignItems="center" justifyContent="center">
+        <Panel title="watch" width={card}>
           <box flexDirection="row" justifyContent="space-between">
             <text wrapMode="none">
-              <StatusDot status={run.status} />
+              <StatusDot status={run.status} now={now} />
               <span
                 fg={theme.text}
               >{` ${name} · ${run.workflow} #${run.number} · ${run.branch}`}</span>
@@ -121,8 +142,8 @@ export const Watch = ({
               ? "Loading jobs…"
               : jobs.map(job => (
                   <span key={job.ref.id}>
-                    <StatusDot status={job.status} />
-                    {` ${job.name}  `}
+                    <StatusDot status={job.status} now={now} />
+                    {` ${label(job, timed)}  `}
                   </span>
                 ))}
           </text>

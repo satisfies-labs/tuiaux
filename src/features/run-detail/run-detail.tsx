@@ -1,15 +1,17 @@
 import { useEffect } from "react"
 
-import { useAtom } from "@effect/atom-react"
+import { useAtom, useAtomSet } from "@effect/atom-react"
 import { useTerminalDimensions } from "@opentui/react"
 
 import { type Run, type RunRef, elapsed, isActive } from "../../domain"
 import type { MonitorState } from "../../monitor"
 import {
   type Command,
+  EmptyState,
   Screen,
   StatusDot,
   View,
+  flashAtom,
   formatAge,
   formatDuration,
   moveBy,
@@ -70,10 +72,10 @@ export const RunDetail = ({
   readonly target: RunRef
 }) => {
   const app = useApp()
-  const theme = useTheme()
   const now = useNow()
   const { width, height } = useTerminalDimensions()
   const { go, back } = useNavigation()
+  const setFlash = useAtomSet(flashAtom)
   const [selectedJob, setSelectedJob] = useAtom(jobSelectionAtom)
 
   const run = findRun(state, target)
@@ -141,7 +143,10 @@ export const RunDetail = ({
             group: "Actions",
             keys: ["o"],
             hint: "open",
-            run: () => app.open(url),
+            run: () => {
+              app.open(url)
+              setFlash("opened in browser")
+            },
           } satisfies Command,
         ]),
   ]
@@ -149,11 +154,10 @@ export const RunDetail = ({
   if (run === undefined)
     return (
       <Screen commands={commands}>
-        <box flexGrow={1} paddingX={1} paddingY={1}>
-          <text fg={theme.muted}>
-            This run isn't in the recent list anymore. Press esc to go back.
-          </text>
-        </box>
+        <EmptyState
+          title="This run isn't in the recent list anymore."
+          lines={["esc goes back."]}
+        />
       </Screen>
     )
 

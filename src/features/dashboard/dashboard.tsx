@@ -7,10 +7,12 @@ import type { RepoRef, Tone } from "../../domain"
 import type { MonitorState, RepoEntry } from "../../monitor"
 import {
   type Command,
+  EmptyState,
   Overlay,
   Screen,
   StatusDot,
   View,
+  flashAtom,
   moveBy,
   overlayAtom,
   plural,
@@ -20,7 +22,16 @@ import {
   useTheme,
 } from "../../ui"
 import { JobsPanel, jobsPanelHeight } from "./jobs-panel"
-import { groupByProvider, selectionAtom, tally } from "./model"
+import {
+  NO_FILTER,
+  type RepoFilter,
+  applyFilter,
+  filterAtom,
+  groupByProvider,
+  isFiltering,
+  selectionAtom,
+  tally,
+} from "./model"
 import { RepoList } from "./repo-list"
 import { RunsTable } from "./runs-table"
 
@@ -37,12 +48,20 @@ const TONES: ReadonlyArray<readonly [Tone, string]> = [
 
 const repoUrl = (repo: RepoRef) => `https://${repo.host}/${repo.path}`
 
+const describeFilter = (filter: RepoFilter): string =>
+  [
+    ...(filter.query === "" ? [] : [`"${filter.query}"`]),
+    ...(filter.failingOnly ? ["failing"] : []),
+  ].join(" + ")
+
 const Summary = ({
   repos,
   inGitRepo,
+  filter,
 }: {
   readonly repos: ReadonlyArray<RepoEntry>
   readonly inGitRepo: boolean
+  readonly filter: RepoFilter
 }) => {
   const theme = useTheme()
   const count = tally(repos)
@@ -63,22 +82,28 @@ const Summary = ({
               ],
         )}
         {inGitRepo ? "" : "  ·  not in a Git repo"}
+        {isFiltering(filter) && (
+          <span
+            fg={theme.accent}
+          >{`  ·  filter: ${describeFilter(filter)}`}</span>
+        )}
       </text>
     </box>
   )
 }
 
-/** Repos on the left, runs and jobs of the selection on the right. `active`: keys are ours. */
+/** Repos on the left, runs and jobs of the selection on the right. */
 export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
   const app = useApp()
-  const theme = useTheme()
   const now = useNow()
   const { width, height } = useTerminalDimensions()
   const [selection, setSelection] = useAtom(selectionAtom)
   const setOverlay = useAtomSet(overlayAtom)
+  const setFlash = useAtomSet(flashAtom)
+  const [filter, setFilter] = useAtom(filterAtom)
   const { go } = useNavigation()
 
-  const groups = groupByProvider(state.repos)
+  const groups = groupByProvider(applyFilter(state.repos, filter))
   const repos = groups.flatMap(group => group.repos)
   const entry = repos.find(e => e.repo.key === selection.repo) ?? repos[0]
   const runs = entry?.runs ?? []
@@ -194,12 +219,14 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
             group: "Actions",
             keys: ["o"],
             hint: "open",
-            run: () =>
+            run: () => {
               app.open(
                 runsFocused && run !== undefined
                   ? run.url
                   : repoUrl(entry.repo),
-              ),
+              )
+              setFlash("opened in browser")
+            },
           } satisfies Command,
         ]),
     ...(entry === undefined || entry.current
@@ -217,23 +244,66 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
                   title: "forget repo",
                   message: `Forget ${entry.repo.path}? It leaves the list until it shows runs again from its own directory.`,
                   confirm: "forget",
-                  run: () => app.run(monitor => monitor.forget(entry.repo)),
+                  run: () => {
+                    app.run(monitor => monitor.forget(entry.repo))
+                    setFlash(`forgot ${entry.repo.path}`)
+                  },
                 }),
               ),
           } satisfies Command,
         ]),
+    {
+      id: "dashboard.filter",
+      title: "Filter repos",
+      group: "Actions",
+      keys: ["/"],
+      hint: "filter",
+      run: () =>
+        setOverlay(
+          Overlay.Prompt({
+            title: "filter repos",
+            initial: filter.query,
+            submit: query => setFilter({ ...filter, query: query.trim() }),
+          }),
+        ),
+    },
+    {
+      id: "dashboard.failing",
+      title: filter.failingOnly ? "Show all repos" : "Show failing repos only",
+      group: "Actions",
+      keys: ["f"],
+      run: () => setFilter({ ...filter, failingOnly: !filter.failingOnly }),
+    },
+    ...(isFiltering(filter)
+      ? [
+          {
+            id: "dashboard.clear-filter",
+            title: "Clear the filter",
+            group: "Actions",
+            keys: ["escape"],
+            hint: "clear filter",
+            run: () => setFilter(NO_FILTER),
+          } satisfies Command,
+        ]
+      : []),
   ]
 
   if (state.repos.length === 0)
     return (
       <Screen commands={commands}>
-        <box paddingX={1} paddingY={1}>
-          <text fg={theme.muted}>
-            {state.inGitRepo
-              ? "This repo's remote isn't on github.com or gitlab.com."
-              : "You are currently not in a Git repo, and no repo is remembered yet."}
-          </text>
-        </box>
+        {state.inGitRepo ? (
+          <EmptyState
+            title="This repo's remote isn't on github.com or gitlab.com."
+            lines={["tuiaux follows GitHub Actions and GitLab CI repos."]}
+          />
+        ) : (
+          <EmptyState
+            title="You are currently not in a Git repo, and no repo is remembered yet."
+            lines={[
+              "Run tuiaux inside a repo once: it is remembered from then on.",
+            ]}
+          />
+        )}
       </Screen>
     )
 
@@ -246,9 +316,28 @@ export const Dashboard = ({ state }: { readonly state: MonitorState }) => {
   const repoWidth = reposWidth(width)
   const rightWidth = width - repoWidth
 
+  if (repos.length === 0)
+    return (
+      <Screen commands={commands}>
+        <Summary
+          repos={state.repos}
+          inGitRepo={state.inGitRepo}
+          filter={filter}
+        />
+        <EmptyState
+          title={`No repo matches ${describeFilter(filter)}.`}
+          lines={["esc clears the filter."]}
+        />
+      </Screen>
+    )
+
   return (
     <Screen commands={commands}>
-      <Summary repos={state.repos} inGitRepo={state.inGitRepo} />
+      <Summary
+        repos={state.repos}
+        inGitRepo={state.inGitRepo}
+        filter={filter}
+      />
       <box flexDirection="row" flexGrow={1}>
         <RepoList
           groups={groups}

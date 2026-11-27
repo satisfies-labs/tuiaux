@@ -7,7 +7,7 @@
 - [x] Remembered repos, hot/cold polling, ETag cache, per-repo backoff, host-wide pause on rate limits
 - [x] Dashboard, run detail and watch views; built-in themes; config issues shown at startup
 - [x] Notifications on settled runs: bell, OSC 9, OpenTUI's notification on kitty
-- [x] Contextual help (`?`): the keys of the current view
+- [x] Contextual help (`?`): the command palette, with every key of the current view
 - [x] Real run durations (GitHub timing, GitLab pipeline detail) and GitLab commit titles, fetched once and cached
 
 ## Before the first release
@@ -22,7 +22,7 @@
 - [ ] Job logs in the run detail (GitHub `/actions/jobs/{id}/logs`, GitLab `/jobs/{id}/trace`), follow mode, jump to the error
 - [ ] Rerun / cancel (with confirmation), exposed through provider `capabilities`
 - [ ] User theme files in `~/.config/tuiaux/themes/*.toml`
-- [ ] Repo list filtering (`/`)
+- [x] Repo list filtering (`/`, `f` for failing repos)
 
 ## Ideas
 
@@ -35,7 +35,7 @@ headless command, tokens in config or other hosts would need a new ADR first.
 - [ ] Activity feed: settled runs across repos, newest first, fed by `Monitor.settled`
 - [ ] Digest on startup: what broke and what shipped since the last visit, with a "new" badge per repo
 - [ ] GitLab jobs grouped by stage, collapsible, in the run detail
-- [ ] Quick jump (`Ctrl-K`): palette over remembered repos, workflows and branches
+- [x] Quick jump (`Ctrl-K`): command palette over actions, remembered repos and recent runs
 - [ ] Workspaces: named filters over remembered repos, each with its own theme and layout (compact, columns, density)
 
 **Repos**

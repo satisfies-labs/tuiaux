@@ -11,7 +11,8 @@ import {
   isActive,
   toneOf,
 } from "../../domain"
-import type { RepoEntry } from "../../monitor"
+import { type RepoEntry, RepoHealth } from "../../monitor"
+import { fuzzyScore } from "../../ui"
 
 export type DashboardPanel = "repos" | "runs"
 
@@ -28,6 +29,33 @@ export const selectionAtom = Atom.make<Selection>({
   repo: undefined,
   run: undefined,
 }).pipe(Atom.keepAlive)
+
+export interface RepoFilter {
+  readonly query: string
+  readonly failingOnly: boolean
+}
+
+export const NO_FILTER: RepoFilter = { query: "", failingOnly: false }
+
+export const filterAtom = Atom.make<RepoFilter>(NO_FILTER).pipe(Atom.keepAlive)
+
+export const isFiltering = (filter: RepoFilter): boolean =>
+  filter.query !== "" || filter.failingOnly
+
+const isRed = (entry: RepoEntry): boolean =>
+  toneOf(entry.runs[0]?.status ?? "idle") === "failure" ||
+  RepoHealth.$is("Failing")(entry.health)
+
+/** The repos matching the query (fuzzy, on the path) and, when asked, only the red ones. */
+export const applyFilter = (
+  repos: ReadonlyArray<RepoEntry>,
+  filter: RepoFilter,
+): ReadonlyArray<RepoEntry> =>
+  repos.filter(
+    entry =>
+      fuzzyScore(filter.query, entry.repo.path) !== undefined &&
+      (!filter.failingOnly || isRed(entry)),
+  )
 
 export interface ProviderGroup {
   readonly kind: ProviderKind
