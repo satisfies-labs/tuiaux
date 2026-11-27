@@ -1,6 +1,6 @@
 import { Option } from "effect"
 
-import { type Run, elapsed } from "../../domain"
+import { type ProviderKind, type Run, elapsed } from "../../domain"
 import type { RepoEntry } from "../../monitor"
 import {
   Panel,
@@ -28,6 +28,14 @@ const FIXED = 2 + WORKFLOW + NUMBER + BRANCH + TIME + AGE + 6
 
 /** Narrower than this, the commit column keeps the room and EVENT goes. */
 const MIN_COMMIT = 16
+
+/** Why a repo can show no runs: usually there's no CI configuration on the provider's side. */
+const noRuns: Record<ProviderKind, string> = {
+  github:
+    "No workflow runs yet. GitHub Actions runs the workflows in .github/workflows/.",
+  gitlab:
+    "No pipelines yet. GitLab CI runs the pipeline defined in .gitlab-ci.yml.",
+}
 
 const RunRow = ({
   run,
@@ -110,7 +118,9 @@ export const RunsTable = ({
         {`   ${fit("WORKFLOW", WORKFLOW)} ${fit("#", NUMBER)} ${fit("BRANCH", BRANCH)} ${fit("COMMIT", commit)} ${event ? `${fit("EVENT", EVENT)} ` : ""}${fit("TIME", TIME)} AGE`}
       </text>
       {runs.length === 0 ? (
-        <text fg={theme.muted}>No runs yet.</text>
+        <text fg={theme.muted}>
+          {entry === undefined ? "No runs yet." : noRuns[entry.repo.kind]}
+        </text>
       ) : (
         runs
           .slice(start, end)
