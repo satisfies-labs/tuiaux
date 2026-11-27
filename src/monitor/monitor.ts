@@ -183,17 +183,21 @@ export class Monitor extends Context.Service<
                   Effect.as(every(runs.some(run => isActive(run.status)))),
                 ),
               onFailure: (error, failures) =>
-                Match.valueTags(error, {
-                  AuthMissing: issue => blockHost(repo, issue),
-                  Unauthorized: issue => blockHost(repo, issue),
-                  RateLimited: issue => blockHost(repo, issue),
-                  NotFound: missing =>
-                    missing.resource === "repo"
-                      ? giveUp(repo, missing)
-                      : retry(repo, missing, failures),
-                  Network: transient => retry(repo, transient, failures),
-                  Unexpected: transient => retry(repo, transient, failures),
-                }),
+                Effect.logWarning(`monitor: runs of ${repo.key}`, error).pipe(
+                  Effect.andThen(
+                    Match.valueTags(error, {
+                      AuthMissing: issue => blockHost(repo, issue),
+                      Unauthorized: issue => blockHost(repo, issue),
+                      RateLimited: issue => blockHost(repo, issue),
+                      NotFound: missing =>
+                        missing.resource === "repo"
+                          ? giveUp(repo, missing)
+                          : retry(repo, missing, failures),
+                      Network: transient => retry(repo, transient, failures),
+                      Unexpected: transient => retry(repo, transient, failures),
+                    }),
+                  ),
+                ),
             },
           )
 
@@ -210,7 +214,8 @@ export class Monitor extends Context.Service<
                 ),
               ),
             onFailure: (error, failures) =>
-              update(s => s.withJobsError(run, error)).pipe(
+              Effect.logWarning(`monitor: jobs of run ${run.id}`, error).pipe(
+                Effect.andThen(update(s => s.withJobsError(run, error))),
                 Effect.as(Option.some(backoff(failures))),
               ),
           })
