@@ -18,8 +18,6 @@ export interface LocalRepo {
   readonly remotes: ReadonlyArray<Remote>
 }
 
-// ── Pure helpers ──────────────────────────────────────────────────────────────────────────────────
-
 /** `origin` first, then `upstream`, then every other remote. */
 const rank = (remote: Remote): number =>
   Match.value(remote.name).pipe(
@@ -97,8 +95,6 @@ export const parseGitUrl = (
 
   return Option.none()
 }
-
-// ── Service ───────────────────────────────────────────────────────────────────────────────────────
 
 /** Reads the local checkout. Never fails: no git, not a repo, or a git error all mean None. */
 export class Git extends Context.Service<

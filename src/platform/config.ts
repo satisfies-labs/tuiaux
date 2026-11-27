@@ -15,8 +15,6 @@ import { Toml } from "effect/encoding"
 import { readFileIfExists } from "./files"
 import { Paths } from "./paths"
 
-// ── Values ────────────────────────────────────────────────────────────────────────────────────────
-
 export const COLOR_TOKENS = [
   "bg",
   "surface",
@@ -65,8 +63,6 @@ export const DEFAULT_CONFIG: Config = {
   refresh: { active: 5, idle: 30 },
   notifications: { enabled: true, bell: true, on: ["failure", "recovered"] },
 }
-
-// ── Issues ────────────────────────────────────────────────────────────────────────────────────────
 
 /** A key whose value is invalid; the default is used instead. */
 export class InvalidValue extends Schema.TaggedClass<
@@ -126,7 +122,6 @@ export class Unreadable extends Schema.TaggedClass<
 
 export type ConfigIssue = InvalidValue | UnknownKey | InvalidToml | Unreadable
 
-// ── Decoding: one schema, decoded twice ───────────────────────────────────────────────────────────
 //
 // `configDocument(wrap)` describes the file. Each section and setting goes through `wrap`:
 // - `strict` rethrows its failure: decoding reports every problem, with its path and the value found;
@@ -189,8 +184,6 @@ const configDocument = (wrap: Wrap) => {
 
 const StrictDocument = configDocument(strict)
 const LenientDocument = configDocument(lenient)
-
-// ── Messages ──────────────────────────────────────────────────────────────────────────────────────
 
 interface Expectation {
   readonly expected: string
@@ -334,8 +327,6 @@ export const decodeConfig = (source: string): DecodedConfig => {
 
   return { config, issues }
 }
-
-// ── Service ───────────────────────────────────────────────────────────────────────────────────────
 
 /** The settings, read once at startup. Never fails: problems become `issues`, shown when the TUI opens. */
 export class AppConfig extends Context.Service<
